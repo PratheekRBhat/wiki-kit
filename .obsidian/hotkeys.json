@@ -1,0 +1,11 @@
+{
+  "graph:open": [
+    { "modifiers": ["Mod"], "key": "G" }
+  ],
+  "app:go-back": [
+    { "modifiers": ["Mod", "Alt"], "key": "ArrowLeft" }
+  ],
+  "app:go-forward": [
+    { "modifiers": ["Mod", "Alt"], "key": "ArrowRight" }
+  ]
+}

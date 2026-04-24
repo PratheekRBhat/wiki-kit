@@ -1,0 +1,58 @@
+{
+	"schemaVersion": "0.1.0",
+	"name": "arXiv Paper",
+	"behavior": "create",
+	"noteContentFormat": "# {{title}}\n\n> **arXiv:** [{{url}}]({{url}})\n> **Authors:** {{author}}\n> **Published:** {{published|date:\"YYYY-MM-DD\"}}\n\n## Abstract\n\n{{selector:blockquote.abstract}}\n\n## Notes\n\n_Reading notes go here, if any. The agent will read the abstract + link out to the PDF for the full paper._",
+	"properties": [
+		{
+			"name": "source_type",
+			"value": "paper",
+			"type": "text"
+		},
+		{
+			"name": "title",
+			"value": "{{title}}",
+			"type": "text"
+		},
+		{
+			"name": "authors",
+			"value": "{{schema:@ScholarlyArticle:author}}",
+			"type": "multitext"
+		},
+		{
+			"name": "url",
+			"value": "{{url}}",
+			"type": "text"
+		},
+		{
+			"name": "arxiv_id",
+			"value": "{{url|split:\\\"/\\\"|last}}",
+			"type": "text"
+		},
+		{
+			"name": "published",
+			"value": "{{published|date:\\\"YYYY-MM-DD\\\"}}",
+			"type": "date"
+		},
+		{
+			"name": "clipped",
+			"value": "{{date}}",
+			"type": "date"
+		},
+		{
+			"name": "abstract",
+			"value": "{{selector:blockquote.abstract|strip_tags}}",
+			"type": "text"
+		},
+		{
+			"name": "ingested",
+			"value": "false",
+			"type": "checkbox"
+		}
+	],
+	"triggers": [
+		"https://arxiv.org/*"
+	],
+	"noteNameFormat": "paper-{{title|safe_name}}",
+	"path": "raw/papers"
+}

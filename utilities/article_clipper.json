@@ -1,0 +1,61 @@
+{
+	"schemaVersion": "0.1.0",
+	"name": "Article",
+	"behavior": "create",
+	"noteContentFormat": "# {{title}}\n\n> **Source:** [{{site}}]({{url}}) · **Author:** {{author}} · **Published:** {{published|date:\"YYYY-MM-DD\"}}\n\n{{content}}",
+	"properties": [
+		{
+			"name": "source_type",
+			"value": "article",
+			"type": "text"
+		},
+		{
+			"name": "title",
+			"value": "{{title}}",
+			"type": "text"
+		},
+		{
+			"name": "author",
+			"value": "{{author}}",
+			"type": "text"
+		},
+		{
+			"name": "site",
+			"value": "{{site}}",
+			"type": "text"
+		},
+		{
+			"name": "url",
+			"value": "{{url}}",
+			"type": "text"
+		},
+		{
+			"name": "published",
+			"value": "{{published|date:\\\"YYYY-MM-DD\\\"}}",
+			"type": "date"
+		},
+		{
+			"name": "clipped",
+			"value": "{{date}}",
+			"type": "date"
+		},
+		{
+			"name": "description",
+			"value": "{{description}}",
+			"type": "text"
+		},
+		{
+			"name": "tags",
+			"value": "",
+			"type": "multitext"
+		},
+		{
+			"name": "ingested",
+			"value": "false",
+			"type": "checkbox"
+		}
+	],
+	"triggers": [],
+	"noteNameFormat": "{{date}}-{{title|safe_name}}",
+	"path": "raw/articles"
+}

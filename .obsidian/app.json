@@ -1,0 +1,14 @@
+{
+  "legacyEditor": false,
+  "livePreview": true,
+  "showLineNumber": false,
+  "useTab": false,
+  "tabSize": 2,
+  "alwaysUpdateLinks": true,
+  "newLinkFormat": "shortest",
+  "useMarkdownLinks": false,
+  "attachmentFolderPath": "raw/attachments",
+  "defaultViewMode": "preview",
+  "showInlineTitle": true,
+  "strictLineBreaks": false
+}
