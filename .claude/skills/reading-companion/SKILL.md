@@ -71,32 +71,7 @@ Do this once, then never again for that book.
 
 **Book / series home card schema:**
 
-```yaml
----
-source_type: book
-title: Designing Data-Intensive Applications
-author: "Martin Kleppmann"
-publisher: "O'Reilly"
-published: 2017
-isbn: "978-1449373320"
-url: https://dataintensive.net/
-tags: [source, book]
-chapters:
-  - { n: 1, slug: "reliable-scalable-maintainable",  status: unread }
-  - { n: 2, slug: "data-models-and-query-languages", status: unread }
-  - { n: 3, slug: "storage-and-retrieval",           status: unread }
-  - { n: 4, slug: "encoding-and-evolution",          status: unread }
-  - { n: 5, slug: "replication",                     status: unread }
-  - { n: 6, slug: "partitioning",                    status: unread }
-  - { n: 7, slug: "transactions",                    status: unread }
-  # ...
-current: null
-started: YYYY-MM-DD
-updated: YYYY-MM-DD
----
-```
-
-For a lecture series, `source_type: book` still fits (treat the whole series as one "book"), and `chapters:` becomes the episode list:
+Frontmatter lives in `CLAUDE.md`'s "Page shapes" → "Book / series home card" section. Use that schema. For a lecture series, `source_type: book` still fits (treat the whole series as one "book"); `chapters:` becomes the episode list:
 
 ```yaml
 chapters:
@@ -106,7 +81,7 @@ chapters:
   # ...
 ```
 
-Status values:
+Status meanings:
 
 - `unread` — not yet touched.
 - `in-progress` — currently reading/watching; `current:` points at where.
@@ -250,12 +225,7 @@ Reading previous chapter source cards *before* ingesting is the thing that makes
 
 ## Log ops
 
-The full set of ops used across the wiki (also in `CLAUDE.md`):
-
-- `read` — started a book, finished a chapter. Reading-companion's op.
-- `discussed` — a substantive read-along conversation worth remembering. Reading-companion's op, used sparingly.
-- `ingest` — a source was synthesised into topic pages. `wiki-ingest`'s op.
-- `query`, `query-filed`, `lint`, `refactor`, `meta` — as in `CLAUDE.md`.
+See `CLAUDE.md`'s "Logging conventions" for the full op list. Reading-companion owns the `read` and `discussed` ops; hands off to `wiki-ingest` for `ingest`.
 
 Example reading arc on one book (grep-able from `log.md`):
 
