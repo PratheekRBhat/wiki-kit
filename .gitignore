@@ -2,3 +2,9 @@
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 .obsidian/cache
+
+# Never commit secrets. If you use a dotenv file for OPENAI_API_KEY etc,
+# this keeps it out of the repo.
+.env
+.env.*
+!.env.example

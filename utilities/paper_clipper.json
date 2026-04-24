@@ -1,0 +1,61 @@
+{
+	"schemaVersion": "0.1.0",
+	"name": "Paper (generic)",
+	"behavior": "create",
+	"noteContentFormat": "# {{title}}\n\n> **Source:** [{{site}}]({{url}}) · **Authors:** {{author}} · **Published:** {{published|date:\"YYYY-MM-DD\"}}\n\n## Abstract\n\n_Abstract from the source page, if captured. Otherwise, backfilled at ingest from the PDF body._\n\n{{content}}\n\n## Notes\n\n_Reading notes go here, if any. The agent will read the PDF if present alongside this file (same slug)._",
+	"properties": [
+		{
+			"name": "source_type",
+			"value": "paper",
+			"type": "text"
+		},
+		{
+			"name": "title",
+			"value": "{{title}}",
+			"type": "text"
+		},
+		{
+			"name": "authors",
+			"value": "{{author}}",
+			"type": "multitext"
+		},
+		{
+			"name": "url",
+			"value": "{{url}}",
+			"type": "text"
+		},
+		{
+			"name": "pdf_url",
+			"value": "",
+			"type": "text"
+		},
+		{
+			"name": "site",
+			"value": "{{site}}",
+			"type": "text"
+		},
+		{
+			"name": "published",
+			"value": "{{published|date:\\\"YYYY-MM-DD\\\"}}",
+			"type": "date"
+		},
+		{
+			"name": "clipped",
+			"value": "{{date}}",
+			"type": "date"
+		},
+		{
+			"name": "description",
+			"value": "{{description}}",
+			"type": "text"
+		},
+		{
+			"name": "ingested",
+			"value": "false",
+			"type": "checkbox"
+		}
+	],
+	"triggers": [],
+	"noteNameFormat": "paper-{{title|safe_name}}",
+	"path": "raw/papers"
+}

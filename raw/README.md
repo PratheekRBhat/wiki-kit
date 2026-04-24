@@ -45,14 +45,26 @@ ingested: false
 source_type: "paper"
 title: "..."
 authors: [...]
-url: "..."
-arxiv_id: "..."
+url: "..."              # landing page / abstract page
+arxiv_id: "..."         # optional; if present, PDF auto-fetched from arxiv.org
+pdf_url: "..."          # optional; direct PDF URL when not on arXiv
+site: "..."             # optional; only set by the generic paper clipper
 published: YYYY-MM-DD
 clipped: YYYY-MM-DD
-abstract: "..."
+abstract: "..."         # may be empty for non-arXiv papers
 ingested: false
 ---
 ```
+
+**How the PDF gets fetched.** `prepare.sh`'s paper handler tries these in order:
+
+1. `<slug>.pdf` already exists next to the `.md` → skip (honors manual drops).
+2. `arxiv_id` set → `curl`s `https://arxiv.org/pdf/<arxiv_id>`.
+3. `pdf_url` set → `curl`s that URL directly.
+4. `url` set and it points at a PDF (`.pdf` extension, or HEAD request returns `Content-Type: application/pdf`) → downloads it.
+5. None of the above → error with a clear "set `pdf_url` / `arxiv_id` / drop the PDF manually" message.
+
+The manual-drop path is first-class — for paywalled papers, publisher landing pages that hide the PDF behind auth (ACM, IEEE, Springer), or PDFs with no web presence (drafts, friends emailing you a file), just drop `paper-<slug>.pdf` alongside the `.md` and `prepare.sh` won't try to fetch anything.
 
 ### Talk (`source_type: talk`)
 

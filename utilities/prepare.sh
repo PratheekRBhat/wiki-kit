@@ -9,6 +9,7 @@
 #   talk      appends a transcript under the '## Transcript' section
 #
 # Requires: curl (for papers), yt-dlp (for talks, via youtube_transcript.sh).
+# Optional: OPENAI_API_KEY + ffmpeg (with -w, routes talks through Whisper).
 
 set -euo pipefail
 shopt -s nullglob
@@ -17,16 +18,20 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 force=0
+use_whisper=0
+dry_run=0
 
 print_usage() {
   cat <<EOF
-Usage: $(basename "$0") [-f] [PATH...]
+Usage: $(basename "$0") [-f] [-w] [-n] [PATH...]
 
 Backfills body content for clipped sources in raw/. Acts based on each
 file's source_type frontmatter:
 
   article    no-op (the body is complete at clip time)
-  paper      downloads the arXiv PDF next to the clipped MD
+  paper      downloads the PDF next to the clipped MD. Tries, in order:
+             arxiv_id frontmatter, pdf_url frontmatter, direct-PDF url.
+             If <slug>.pdf already exists, skips (honors manual drops).
   talk       appends a transcript under '## Transcript'
 
 PATH can be one or more .md files, directories (scanned recursively), or
@@ -35,19 +40,27 @@ raw/ that isn't already marked ingested: true.
 
 Options:
   -f    Force re-fetch (overwrite existing PDFs, replace existing transcripts).
+  -w    Route talk transcripts through Whisper (OpenAI API) instead of
+        YouTube auto-captions. Higher quality, costs ~\$0.006/min.
+        Requires OPENAI_API_KEY and ffmpeg. See utilities/whisper.sh -h.
+  -n    Dry run. Report what would be done without fetching anything.
   -h    Show this help.
 
 Examples:
   $(basename "$0")
-  $(basename "$0") raw/talks/talk-iceberg.md
+  $(basename "$0") raw/talks/talk-foo.md
   $(basename "$0") raw/papers
-  $(basename "$0") -f raw/talks/talk-iceberg.md
+  $(basename "$0") -f raw/talks/talk-foo.md
+  $(basename "$0") -w raw/talks/talk-dense-accent.md
+  $(basename "$0") -n              # preview pending work
 EOF
 }
 
-while getopts "fh" opt; do
+while getopts "fwnh" opt; do
   case "$opt" in
     f) force=1 ;;
+    w) use_whisper=1 ;;
+    n) dry_run=1 ;;
     h) print_usage; exit 0 ;;
     *) print_usage >&2; exit 1 ;;
   esac
@@ -87,25 +100,64 @@ is_ingested() {
 
 # ---------------- per-type handlers ----------------
 
+# Returns 0 if the given URL points directly at a PDF (path ends in .pdf,
+# or a HEAD request reports Content-Type: application/pdf). Cheap heuristic —
+# handles the common case, not the publisher-landing-page case.
+url_points_at_pdf() {
+  local url="$1"
+  local path ct
+  # Fast path: URL path ends with .pdf (ignoring query string and fragment).
+  path="${url%%\?*}"
+  path="${path%%#*}"
+  [[ "$path" =~ \.pdf$ ]] && return 0
+  # Slow path: HEAD request, short timeout so we don't hang on slow servers.
+  ct=$(curl -sSLI --fail --max-time 10 "$url" 2>/dev/null \
+    | awk -F': ' '/^[Cc]ontent-[Tt]ype:/ { sub(/;.*/, "", $2); sub(/\r$/, "", $2); print $2; exit }')
+  [[ "$ct" == "application/pdf" ]]
+}
+
 prepare_paper() {
   local file="$1"
-  local arxiv_id pdf
-  arxiv_id=$(fm_get "$file" "arxiv_id")
-  if [[ -z "$arxiv_id" ]]; then
-    fail "$file — missing 'arxiv_id' in frontmatter"
-    return 1
-  fi
+  local arxiv_id pdf_url url pdf fetch_url source_label
   pdf="${file%.md}.pdf"
+
+  # Already have the PDF? Honor manual drops (paywalled source, friend emailed
+  # it to you, publisher landing page not scriptable, etc).
   if [[ -f "$pdf" && $force -eq 0 ]]; then
     skip "$file — PDF already exists ($(basename "$pdf"))"
     return 0
   fi
-  if curl -sSL --fail -o "$pdf" "https://arxiv.org/pdf/${arxiv_id}"; then
-    ok "$file — downloaded $(basename "$pdf")"
+
+  # Priority chain: arxiv_id > pdf_url > url (if it points at a PDF).
+  arxiv_id=$(fm_get "$file" "arxiv_id")
+  pdf_url=$(fm_get "$file" "pdf_url")
+  url=$(fm_get "$file" "url")
+
+  if [[ -n "$arxiv_id" ]]; then
+    fetch_url="https://arxiv.org/pdf/${arxiv_id}"
+    source_label="arxiv_id=$arxiv_id"
+  elif [[ -n "$pdf_url" ]]; then
+    fetch_url="$pdf_url"
+    source_label="pdf_url"
+  elif [[ -n "$url" ]] && url_points_at_pdf "$url"; then
+    fetch_url="$url"
+    source_label="url (direct PDF)"
+  else
+    fail "$file — no path to PDF. Set 'pdf_url', set 'arxiv_id', or drop the PDF at $(basename "$pdf") manually."
+    return 1
+  fi
+
+  if (( dry_run )); then
+    ok "$file — would download $fetch_url ($source_label)"
+    return 0
+  fi
+
+  if curl -sSL --fail -o "$pdf" "$fetch_url"; then
+    ok "$file — downloaded $(basename "$pdf") via $source_label"
     return 0
   else
     rm -f "$pdf"
-    fail "$file — arXiv PDF fetch failed (arxiv_id=$arxiv_id)"
+    fail "$file — PDF fetch failed ($source_label → $fetch_url)"
     return 1
   fi
 }
@@ -135,14 +187,28 @@ prepare_talk() {
     return 0
   fi
 
+  local transcriber transcriber_name
+  if (( use_whisper )); then
+    transcriber="$SCRIPT_DIR/whisper.sh"
+    transcriber_name="whisper.sh"
+  else
+    transcriber="$SCRIPT_DIR/youtube_transcript.sh"
+    transcriber_name="youtube_transcript.sh"
+  fi
+
+  if (( dry_run )); then
+    ok "$file — would fetch transcript via $transcriber_name"
+    return 0
+  fi
+
   local tmp rewritten
   tmp=$(mktemp)
   rewritten=$(mktemp)
 
   # Fetch first (don't touch the source MD unless we got something).
-  if ! "$SCRIPT_DIR/youtube_transcript.sh" "$url" > "$tmp"; then
+  if ! "$transcriber" "$url" > "$tmp"; then
     rm -f "$tmp" "$rewritten"
-    fail "$file — youtube_transcript.sh failed"
+    fail "$file — $transcriber_name failed"
     return 1
   fi
 
@@ -261,5 +327,10 @@ for file in "${files[@]}"; do
 done
 
 echo ""
-echo "summary: processed=$processed skipped=$skipped failed=$failed"
+if (( dry_run )); then
+  echo "dry run — no changes made"
+  echo "summary: pending=$processed complete=$skipped failed=$failed"
+else
+  echo "summary: processed=$processed skipped=$skipped failed=$failed"
+fi
 exit $(( failed > 0 ? 1 : 0 ))
