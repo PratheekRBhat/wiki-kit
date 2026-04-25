@@ -12,6 +12,7 @@ The **only** allowed mutation is flipping `ingested: false → true` in a raw fi
 - `articles/` — blog posts and long-form articles. Clipped via [Obsidian Web Clipper](https://obsidian.md/clipper) using `utilities/article_clipper.json`.
 - `papers/` — academic papers. Clipped from arXiv via `utilities/arxiv_paper_clipper.json` (captures metadata + abstract). **Always accompany the clip with the PDF** (e.g. `paper-<slug>.pdf`) — the HTML page doesn't contain the paper body; the PDF is the canonical source.
 - `talks/` — conference talks and YouTube videos. Clipped via `utilities/youtube_talk_clipper.json` (captures metadata + description). **Always accompany the clip with the transcript** — YouTube's DOM doesn't contain the transcript at clip time. Use `utilities/youtube_transcript.sh` (see below) or paste manually from YouTube's transcript panel.
+- `conversations/` — insightful LLM chats (Claude, ChatGPT, etc.) saved as sources. Created by the `/save-conversation` slash command, which writes a *writeup* (not a transcript) shaped to the conversation kind — RCA for debug sessions, findings for research, narrative explainer for learning, ADR for decisions.
 
 See [`utilities/README.md`](../utilities/README.md) for Web Clipper template setup.
 
@@ -65,6 +66,34 @@ ingested: false
 5. None of the above → error with a clear "set `pdf_url` / `arxiv_id` / drop the PDF manually" message.
 
 The manual-drop path is first-class — for paywalled papers, publisher landing pages that hide the PDF behind auth (ACM, IEEE, Springer), or PDFs with no web presence (drafts, friends emailing you a file), just drop `paper-<slug>.pdf` alongside the `.md` and `prepare.sh` won't try to fetch anything.
+
+### Conversation (`source_type: conversation`)
+
+```yaml
+---
+source_type: "conversation"
+title: "..."
+participants:
+  - "user"
+  - "claude-opus-4.7"           # or chatgpt-gpt-4o, gemini-2.5-pro, ...
+original_app: "Claude Code"     # or Claude.ai, ChatGPT, Cursor, ...
+url: ""                         # if a shared link
+clipped: YYYY-MM-DD
+conversation_kind: "debug"      # debug | research | learning | decision | other
+why_kept: "..."                 # one-line, optional
+ingested: false
+---
+```
+
+Conversations are saved by the `/save-conversation` slash command. The body is a **writeup** of the chat, not a verbatim transcript or short summary. The shape depends on `conversation_kind`:
+
+- **`debug`** — RCA-style: problem → hypotheses tried → root cause → fix → followups.
+- **`research`** — findings-style: question → what we found → open threads.
+- **`learning`** — narrative explainer: hook → mechanism → worked example → gotchas.
+- **`decision`** — ADR-style: context → options considered → decision → consequences.
+- **`other`** — pick the shape that teaches best.
+
+The writeup uses the wiki's teaching voice (per `CLAUDE.md`). When ingested, conversations behave like any other source — `wiki-ingest` synthesises topic pages from them. `prepare.sh` no-ops on conversations (body is already complete at write time).
 
 ### Talk (`source_type: talk`)
 

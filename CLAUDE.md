@@ -110,7 +110,7 @@ Slug format: `article-<short-title>`, `paper-<short-title>`, `talk-<short-title>
 
 ```yaml
 ---
-source_type: article | paper | talk | book | chapter
+source_type: article | paper | talk | book | chapter | conversation
 title: Human-readable title
 author: "Author Name(s)"
 url: <original url, if applicable>
@@ -248,6 +248,14 @@ Trigger: the owner asks a question.
 3. If the answer needs synthesis across multiple pages, say so and cite them inline.
 4. If the answer is valuable enough to preserve, **ask the owner if it should be filed as a new topic page or extend an existing one**. If yes, write it, update `index.md`, log as `query-filed`.
 5. Answer format is whatever teaches best: prose, tables, a Mermaid diagram, a slide deck, worked-through math or code. Pick the one that actually teaches.
+
+### Save a conversation
+
+Trigger: the owner says "save this conversation", "this chat was insightful, save it", or invokes the `/save-conversation` slash command.
+
+The slash command at `.claude/commands/save-conversation.md` handles this end-to-end. It asks for the conversation content (paste, file path, or current context), metadata (title, originating app, URL, why-kept), and the `conversation_kind` (`debug` | `research` | `learning` | `decision` | `other`). Then it writes a *writeup* — not a transcript, not a summary — into `raw/conversations/<slug>.md`. The writeup's shape matches the conversation kind (RCA for debug, ADR for decisions, etc.).
+
+Conversations don't need `prepare.sh` (body is complete at write time) — they go straight to `wiki-ingest` whenever the owner is ready.
 
 ### Daily digest
 
