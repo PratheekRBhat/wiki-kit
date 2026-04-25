@@ -102,7 +102,7 @@ Reads each source's `source_type` frontmatter and does the right thing:
 | `source_type` | Action |
 | --- | --- |
 | `article` | no-op (body is complete at clip time) |
-| `conversation` | no-op (body written by `/save-conversation` slash command) |
+| `conversation` | no-op (body written by `save-conversation` skill) |
 | `paper` | downloads the PDF next to the clipped MD. Priority: existing file → `arxiv_id` → `pdf_url` → direct-PDF `url` → error. |
 | `talk` | appends a transcript under `## Transcript` via `youtube_transcript.sh` (or `whisper.sh` with `-w`) |
 

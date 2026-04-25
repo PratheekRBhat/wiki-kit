@@ -29,7 +29,7 @@ Backfills body content for clipped sources in raw/. Acts based on each
 file's source_type frontmatter:
 
   article    no-op (the body is complete at clip time)
-  conversation  no-op (the body is written by the /save-conversation command)
+  conversation  no-op (the body is written by the save-conversation skill)
   paper      downloads the PDF next to the clipped MD. Tries, in order:
              arxiv_id frontmatter, pdf_url frontmatter, direct-PDF url.
              If <slug>.pdf already exists, skips (honors manual drops).
@@ -422,7 +422,7 @@ for file in "${files[@]}"; do
       skipped=$((skipped + 1))
       ;;
     conversation)
-      skip "$file — conversation body complete at write time (saved by /save-conversation)"
+      skip "$file — conversation body complete at write time (saved by save-conversation skill)"
       skipped=$((skipped + 1))
       ;;
     paper)

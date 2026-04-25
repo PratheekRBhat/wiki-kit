@@ -1,30 +1,33 @@
 ---
-description: Save an LLM conversation as a source in raw/conversations/. Writes a writeup (RCA / findings / explainer / ADR), not a transcript or summary.
+name: save-conversation
+description: Save an insightful LLM conversation (Claude, ChatGPT, etc.) as a source in raw/conversations/. Writes a writeup — RCA for debug sessions, findings for research, narrative explainer for learning, ADR for decisions — not a verbatim transcript or short summary. Use when the owner says "save this conversation", "this chat was insightful, save it", "clip this discussion", "save this debug session", "save this learning conversation", or any variant indicating they want to capture an LLM chat as a wiki source.
 ---
 
-You are saving an LLM conversation to the wiki's raw layer as a new source. The body is **not** a transcript and **not** a summary — it's a *writeup* whose shape matches what the conversation actually was.
+# save-conversation
 
-User's hint (if any): $ARGUMENTS
+Saves an LLM conversation as a source in `raw/conversations/`. The body is a **writeup** of the chat — not a verbatim transcript and not a short summary — shaped to match what the conversation actually was.
+
+**Hard boundary:** this skill writes to `raw/conversations/` only. It does not trigger ingest. It does not touch `wiki/`. `wiki-ingest` is the next step, run separately when the owner is ready.
+
+---
 
 ## Step 1 — Get the content
 
-Ask the user for the conversation source. Accept any of:
+Use whatever the owner already provided. If they pasted a transcript or pointed at a file along with their request, use that. Otherwise, ask which of these:
 
 - **Pasted transcript** — they paste the back-and-forth into the chat.
 - **File path** — they point at a file (markdown export from Claude.ai, JSON from ChatGPT, plain text, anything readable).
 - **Current context** — they say "the conversation we just had" or similar. Only valid if the conversation actually happened in *this* Claude Code session and you can reconstruct it from your context window. If you have to invent or guess, ask for a paste instead.
 
-If the user's `$ARGUMENTS` already pointed at one of these (e.g. a file path), proceed without re-asking.
-
 ## Step 2 — Get metadata
 
-Ask the user (combine into one prompt; let them answer terse):
+Ask the owner (combine into one prompt; let them answer terse):
 
 1. **Title** — short, durable. If they don't have one, propose 2–3 options based on the content and let them pick.
 2. **Originating app** — Claude Code, Claude.ai, ChatGPT, Cursor, Perplexity, etc. If obvious from the source, just confirm rather than ask.
 3. **URL** — only if they have a shared link. Optional.
-4. **`why_kept`** — one line on why this earned a slot. Future-you will thank you. Optional but encouraged.
-5. **Conversation kind** — pick one: `debug`, `research`, `learning`, `decision`, `other`. If you can clearly tell from the content, propose it and let the user override.
+4. **`why_kept`** — one line on why this earned a slot. Future-them will thank them. Optional but encouraged.
+5. **Conversation kind** — pick one: `debug`, `research`, `learning`, `decision`, `other`. If you can clearly tell from the content, propose it and let them override.
 
 ## Step 3 — Write the writeup
 
@@ -37,7 +40,7 @@ Pick the shape based on `conversation_kind`:
 ```markdown
 ## Problem
 
-What was broken. Symptom, environment, what the user was actually trying to do.
+What was broken. Symptom, environment, what the owner was actually trying to do.
 
 ## What we tried
 
@@ -156,11 +159,11 @@ Write the file: frontmatter, then the writeup body.
 
 ## Step 6 — Report
 
-Tell the user:
+Tell the owner:
 
 - The file path written.
 - The conversation kind chosen.
 - A one-sentence description of what the writeup covers.
 - A reminder that the source isn't ingested yet — they can run `wiki-ingest` on it whenever, or let `daily-digest` pick it up automatically.
 
-**Do not** trigger ingest. **Do not** touch `wiki/`. **Do not** modify `index.md` or `log.md`. This command's job is just to land a clean source in `raw/conversations/`.
+**Do not** trigger ingest. **Do not** touch `wiki/`. **Do not** modify `index.md` or `log.md`. This skill's job is just to land a clean source in `raw/conversations/`.

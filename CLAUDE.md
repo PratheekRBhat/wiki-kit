@@ -251,9 +251,9 @@ Trigger: the owner asks a question.
 
 ### Save a conversation
 
-Trigger: the owner says "save this conversation", "this chat was insightful, save it", or invokes the `/save-conversation` slash command.
+Trigger: the owner says "save this conversation", "this chat was insightful, save it", or any variant indicating they want to capture an LLM chat as a wiki source.
 
-The slash command at `.claude/commands/save-conversation.md` handles this end-to-end. It asks for the conversation content (paste, file path, or current context), metadata (title, originating app, URL, why-kept), and the `conversation_kind` (`debug` | `research` | `learning` | `decision` | `other`). Then it writes a *writeup* — not a transcript, not a summary — into `raw/conversations/<slug>.md`. The writeup's shape matches the conversation kind (RCA for debug, ADR for decisions, etc.).
+The `save-conversation` skill at `.claude/skills/save-conversation/SKILL.md` handles this end-to-end. It asks for the conversation content (paste, file path, or current context), metadata (title, originating app, URL, why-kept), and the `conversation_kind` (`debug` | `research` | `learning` | `decision` | `other`). Then it writes a *writeup* — not a transcript, not a summary — into `raw/conversations/<slug>.md`. The writeup's shape matches the conversation kind (RCA for debug, ADR for decisions, etc.).
 
 Conversations don't need `prepare.sh` (body is complete at write time) — they go straight to `wiki-ingest` whenever the owner is ready.
 
