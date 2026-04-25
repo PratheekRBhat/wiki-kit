@@ -59,6 +59,7 @@ Example prompts:
 - **`CLAUDE.md`** — the operating manual. General-purpose; works out of the box. Two optional sections near the top (*Owner baseline*, *Scope*) are where you'd sharpen the agent's defaults if you want to.
 - **`.claude/skills/wiki-ingest/`** — the ingest skill. Heavy on teaching voice.
 - **`.claude/skills/reading-companion/`** — multi-chapter book / lecture-series companion. Seeds a book home card, supports read-along discussion, hands off to `wiki-ingest` per chapter.
+- **`.claude/skills/daily-digest/`** — batched-ingest + curated highlights. Runs everything pending in `raw/` through `prepare.sh` + `wiki-ingest`, then writes a short editorial digest to `wiki/digests/<date>.md`. Designed to run on a schedule.
 - **`utilities/`** — Obsidian Web Clipper templates for articles, arXiv papers, and YouTube talks, plus `prepare.sh` (post-clip backfill) and `youtube_transcript.sh` (caption fetcher).
 - **`.obsidian/`** — pre-configured vault: graph-view colors per tag, hotkeys, sensible defaults.
 - **`examples/`** — reference specialisations showing how `CLAUDE.md` can be narrowed for specific domains. Optional reading; the wiki works as-is without them.

@@ -46,6 +46,11 @@ Options:
   -n    Dry run. Report what would be done without fetching anything.
   -h    Show this help.
 
+Auto-wrap: with no arguments, before the main scan, this script auto-wraps
+any manually-dropped PDFs or audio files in raw/{articles,papers,talks}/
+that don't have a companion .md. Targeted runs (specific files or dirs)
+skip the auto-wrap — run with no args to sweep orphans.
+
 Examples:
   $(basename "$0")
   $(basename "$0") raw/talks/talk-foo.md
@@ -175,10 +180,23 @@ talk_has_transcript() {
 
 prepare_talk() {
   local file="$1"
-  local url
+  local url audio_file input file_dir
   url=$(fm_get "$file" "url")
-  if [[ -z "$url" ]]; then
-    fail "$file — missing 'url' in frontmatter"
+  audio_file=$(fm_get "$file" "audio_file")
+
+  # audio_file wins when both are set — a local file is the more specific
+  # source.
+  if [[ -n "$audio_file" ]]; then
+    file_dir="$(cd "$(dirname "$file")" && pwd)"
+    input="$file_dir/$audio_file"
+    if [[ ! -f "$input" ]]; then
+      fail "$file — audio_file not found: $input"
+      return 1
+    fi
+  elif [[ -n "$url" ]]; then
+    input="$url"
+  else
+    fail "$file — missing 'url' or 'audio_file' in frontmatter"
     return 1
   fi
 
@@ -188,7 +206,9 @@ prepare_talk() {
   fi
 
   local transcriber transcriber_name
-  if (( use_whisper )); then
+  # Local audio always goes through Whisper — YouTube auto-captions don't
+  # exist for files on disk.
+  if [[ -n "$audio_file" ]] || (( use_whisper )); then
     transcriber="$SCRIPT_DIR/whisper.sh"
     transcriber_name="whisper.sh"
   else
@@ -197,7 +217,7 @@ prepare_talk() {
   fi
 
   if (( dry_run )); then
-    ok "$file — would fetch transcript via $transcriber_name"
+    ok "$file — would fetch transcript via $transcriber_name ($(basename "$input"))"
     return 0
   fi
 
@@ -206,7 +226,7 @@ prepare_talk() {
   rewritten=$(mktemp)
 
   # Fetch first (don't touch the source MD unless we got something).
-  if ! "$transcriber" "$url" > "$tmp"; then
+  if ! "$transcriber" "$input" > "$tmp"; then
     rm -f "$tmp" "$rewritten"
     fail "$file — $transcriber_name failed"
     return 1
@@ -251,6 +271,101 @@ prepare_talk() {
   ok "$file — transcript appended"
   return 0
 }
+
+# ---------------- orphan auto-wrap ----------------
+# Before the main scan, catch any non-.md files sitting in raw/articles/,
+# raw/papers/, or raw/talks/ that don't have a companion .md. These happen
+# when a PDF or audio file is dropped manually (e.g. a paper a friend sent,
+# a podcast downloaded by hand). Auto-create a stub .md so downstream steps
+# (prepare backfill, ingest, digest) can see them.
+#
+# raw/book/ is deliberately skipped — books go through reading-companion,
+# which seeds its own book-home card.
+
+# Format a file's mtime as YYYY-MM-DD. Handles both macOS (stat -f) and GNU
+# (stat -c) without requiring GNU coreutils on Mac.
+file_mtime_date() {
+  local file="$1"
+  if stat -f '%Sm' -t '%Y-%m-%d' "$file" >/dev/null 2>&1; then
+    stat -f '%Sm' -t '%Y-%m-%d' "$file"
+  else
+    date -d "@$(stat -c '%Y' "$file")" +'%Y-%m-%d'
+  fi
+}
+
+wrap_orphans() {
+  local wrapped=0
+  local subdir type dir file slug md stub_date fname
+  for subdir in articles papers talks; do
+    type="${subdir%s}"
+    dir="$REPO_ROOT/raw/$subdir"
+    [[ -d "$dir" ]] || continue
+
+    while IFS= read -r -d '' file; do
+      fname="$(basename "$file")"
+      slug="${fname%.*}"
+      md="$dir/${slug}.md"
+      [[ -f "$md" ]] && continue       # already has a companion MD
+      stub_date=$(file_mtime_date "$file")
+
+      case "$type" in
+        article)
+          cat > "$md" <<EOF
+---
+source_type: "article"
+title: "$slug"
+clipped: $stub_date
+ingested: false
+---
+
+_Wrapped from orphan file: $fname. Edit frontmatter and body as needed._
+EOF
+          ;;
+        paper)
+          cat > "$md" <<EOF
+---
+source_type: "paper"
+title: "$slug"
+clipped: $stub_date
+ingested: false
+---
+
+_Wrapped from orphan file: $fname. The file is already on disk alongside this MD; prepare.sh will skip the PDF fetch._
+EOF
+          ;;
+        talk)
+          cat > "$md" <<EOF
+---
+source_type: "talk"
+title: "$slug"
+audio_file: "$fname"
+clipped: $stub_date
+ingested: false
+---
+
+## Transcript
+
+_Paste transcript here, or run \`utilities/prepare.sh\` to transcribe \`$fname\` via Whisper (requires OPENAI_API_KEY)._
+EOF
+          ;;
+      esac
+
+      echo "• wrapped orphan: $file" >&2
+      wrapped=$((wrapped + 1))
+    done < <(find "$dir" -maxdepth 1 -type f \
+      ! -name '*.md' ! -name 'README.md' ! -name '.gitkeep' ! -name '.DS_Store' \
+      -print0 2>/dev/null)
+  done
+  (( wrapped > 0 )) && echo "• wrapped $wrapped orphan file(s)" >&2
+  return 0
+}
+
+# Only wrap orphans in auto-discovery mode. When the user targets specific
+# files or directories, respect their scope — don't silently create stubs
+# elsewhere.
+if [[ $# -eq 0 ]]; then
+  wrap_orphans
+fi
 
 # ---------------- main ----------------
 

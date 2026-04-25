@@ -44,6 +44,7 @@ wiki/
 ├── utilities/        ← clipper templates + helper scripts
 └── wiki/             ← agent-owned knowledge
     ├── sources/      ← SILVER — one card per source (reading notes)
+    ├── digests/      ← daily-digest output — curated highlights per run date
     ├── glossary.md   ← aliases / alternate names redirecting to canonical slugs
     └── <topic>.md    ← GOLD — one flat file per idea, concept, technique
 ```
@@ -74,7 +75,7 @@ Rule of thumb:
 
 ### 2. Flat topic layer
 
-Never create subdirectories under `wiki/` except `sources/`. The taxonomy lives in tags and in `index.md` grouping. Flat slugs are stable under reorganisation; directory moves break wikilinks.
+Never create subdirectories under `wiki/` except the two explicit exceptions: `sources/` (source cards) and `digests/` (daily-digest output). Everything else is a flat `wiki/<slug>.md`. The taxonomy lives in tags and in `index.md` grouping. Flat slugs are stable under reorganisation; directory moves break wikilinks.
 
 Tag vocabulary:
 
@@ -248,6 +249,20 @@ Trigger: the owner asks a question.
 4. If the answer is valuable enough to preserve, **ask the owner if it should be filed as a new topic page or extend an existing one**. If yes, write it, update `index.md`, log as `query-filed`.
 5. Answer format is whatever teaches best: prose, tables, a Mermaid diagram, a slide deck, worked-through math or code. Pick the one that actually teaches.
 
+### Daily digest
+
+Trigger: the owner says "run the digest", "process today's clippings", "catch up the wiki", or a scheduled task fires the skill.
+
+Follow the `daily-digest` skill under `.claude/skills/daily-digest/`. The short version:
+
+1. **Prepare** — run `utilities/prepare.sh` (wraps orphans, backfills PDFs + transcripts).
+2. **Ingest** — `wiki-ingest` per source still marked `ingested: false`.
+3. **Track** — collect topic pages created/extended across the run.
+4. **Digest** — if 2+ topic pages were touched, write `wiki/digests/<date>.md` with 3–5 curated highlights in the wiki's teaching voice.
+5. **Log** — append a `digest` op to `log.md`.
+
+Digests are derived artifacts, not part of the knowledge graph. Topic pages do **not** link back to digests.
+
 ### Lint
 
 Trigger: the owner says "lint the wiki", or periodically (every ~5 ingests).
@@ -396,7 +411,7 @@ Every operation appends to `log.md`:
 - Notes: 1–3 lines. What the source was, scope decision, contradictions, followups.
 ```
 
-`<op>` is one of: `ingest`, `read`, `discussed`, `query`, `query-filed`, `lint`, `refactor`, `meta`.
+`<op>` is one of: `ingest`, `read`, `discussed`, `query`, `query-filed`, `lint`, `digest`, `refactor`, `meta`.
 
 - `ingest` — a source was synthesised into topic pages (`wiki-ingest` skill).
 - `read` — a book/series was started, or a chapter/episode was finished (not yet ingested) (`reading-companion` skill).
@@ -404,6 +419,7 @@ Every operation appends to `log.md`:
 - `query` — a question was asked and answered from the wiki.
 - `query-filed` — a query answer was promoted to a topic page.
 - `lint` — a lint pass was run.
+- `digest` — a daily-digest run (`daily-digest` skill). Covers the batched ingest + the digest write; a single op per run.
 - `refactor` — a structural change (slug rename, page split/merge).
 - `meta` — a change to `CLAUDE.md`, the structure, or conventions.
 

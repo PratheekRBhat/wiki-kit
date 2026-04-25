@@ -73,13 +73,34 @@ The manual-drop path is first-class — for paywalled papers, publisher landing 
 source_type: "talk"
 title: "..."
 channel: "..."
-url: "..."
+url: "..."                # YouTube / podcast URL (for clipped sources)
+audio_file: "..."         # local audio filename next to this MD (for manual drops)
 duration: "PT_H_M_S"
 published: YYYY-MM-DD
 clipped: YYYY-MM-DD
 ingested: false
 ---
 ```
+
+Either `url:` or `audio_file:` must be set. If both are present, `audio_file:` wins. Local audio files always transcribe via Whisper (auto-captions only exist for YouTube URLs).
+
+---
+
+## Manually-dropped files (orphan auto-wrap)
+
+Not every source goes through the Web Clipper. Sometimes you drop a PDF a friend emailed you, an mp3 of a downloaded podcast, or a paper pulled from a paywalled journal — no clipper involved, no frontmatter.
+
+`prepare.sh` handles this automatically. Before its main scan, it looks for non-`.md` files in `raw/articles/`, `raw/papers/`, and `raw/talks/` that don't have a companion `.md` next to them. For each orphan, it auto-generates a stub `.md` with:
+
+- `source_type` inferred from the subdirectory.
+- `title` from the filename (rough — the ingest agent refines this on the source card).
+- `clipped:` set to the file's `mtime` formatted as `YYYY-MM-DD`.
+- `ingested: false`.
+- For talks: `audio_file: <filename>` so the transcript step routes to Whisper.
+
+After that, the file joins the normal pipeline. You can edit the stub frontmatter if you want a sharper title or other metadata; the auto-wrap is just "get it into the queue."
+
+`raw/book/` is deliberately skipped — books go through the `reading-companion` skill, which seeds its own book-home card with a different schema.
 
 ---
 

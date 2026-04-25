@@ -152,11 +152,22 @@ dry run — no changes made
 summary: pending=2 complete=1 failed=0
 ```
 
+**Pre-pass: orphan auto-wrap (auto-discovery mode only).**
+
+When run with no args, before the main scan, `prepare.sh` looks for manually-dropped files in `raw/{articles,papers,talks}/` that don't have a companion `.md`. For each orphan it creates a stub frontmatter wrapper:
+
+- `source_type` inferred from subdirectory.
+- `title` from filename.
+- `clipped:` set to the file's `mtime`.
+- For talks, `audio_file:` pointing at the file so the transcript step routes through Whisper.
+
+This handles PDFs friends emailed you, podcast episodes you downloaded, paywalled papers you pulled by hand — anything that didn't go through the Web Clipper. `raw/book/` is skipped (books go through `reading-companion`). The pre-pass does NOT run when you target specific files — if you name paths, it respects your scope and doesn't silently create stubs elsewhere.
+
 **What it does per file:**
 
-- Reads the frontmatter to get `source_type`, `arxiv_id` / `pdf_url` / `url` (papers), `url` (talks), and `ingested`.
+- Reads the frontmatter to get `source_type`, `arxiv_id` / `pdf_url` / `url` (papers), `url` / `audio_file` (talks), and `ingested`.
 - For papers: if `<slug>.pdf` already exists alongside the `.md`, skips (add `-f` to overwrite). Otherwise fetches the PDF via the priority chain (`arxiv_id` → `pdf_url` → direct-PDF `url`). Errors politely if none of those work — drop the PDF manually in that case.
-- For talks: if the `## Transcript` section already has non-placeholder content, skips. Otherwise calls `youtube_transcript.sh` (or `whisper.sh` with `-w`) and splices the result into the section.
+- For talks: if the `## Transcript` section already has non-placeholder content, skips. Otherwise calls `youtube_transcript.sh` (or `whisper.sh` if `-w` is set **or** `audio_file:` is set in frontmatter) and splices the result into the section. Local audio files always route through Whisper.
 - Prints a per-file status line (`ok` / `skip` / `error`) and a final summary.
 - Exits non-zero if any file failed, so it's safe to use in pipelines.
 
