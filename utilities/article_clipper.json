@@ -5,6 +5,11 @@
 	"noteContentFormat": "# {{title}}\n\n> **Source:** [{{site}}]({{url}}) · **Author:** {{author}} · **Published:** {{published|date:\"YYYY-MM-DD\"}}\n\n{{content}}",
 	"properties": [
 		{
+			"name": "type",
+			"value": "Raw",
+			"type": "text"
+		},
+		{
 			"name": "source_type",
 			"value": "article",
 			"type": "text"
@@ -57,5 +62,5 @@
 	],
 	"triggers": [],
 	"noteNameFormat": "{{date}}-{{title|safe_name}}",
-	"path": "raw/articles"
+	"path": "raw"
 }

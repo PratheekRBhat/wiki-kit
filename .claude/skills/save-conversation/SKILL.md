@@ -1,13 +1,13 @@
 ---
 name: save-conversation
-description: Save an insightful LLM conversation (Claude, ChatGPT, etc.) as a source in raw/conversations/. Writes a writeup — RCA for debug sessions, findings for research, narrative explainer for learning, ADR for decisions — not a verbatim transcript or short summary. Use when the owner says "save this conversation", "this chat was insightful, save it", "clip this discussion", "save this debug session", "save this learning conversation", or any variant indicating they want to capture an LLM chat as a wiki source.
+description: Save an insightful LLM conversation (Claude, ChatGPT, etc.) as a source in raw/. Writes a writeup — RCA for debug sessions, findings for research, narrative explainer for learning, ADR for decisions — not a verbatim transcript or short summary. Use when the owner says "save this conversation", "this chat was insightful, save it", "clip this discussion", "save this debug session", "save this learning conversation", or any variant indicating they want to capture an LLM chat as a wiki source.
 ---
 
 # save-conversation
 
-Saves an LLM conversation as a source in `raw/conversations/`. The body is a **writeup** of the chat — not a verbatim transcript and not a short summary — shaped to match what the conversation actually was.
+Saves an LLM conversation as a source in `raw/`. The body is a **writeup** of the chat — not a verbatim transcript and not a short summary — shaped to match what the conversation actually was.
 
-**Hard boundary:** this skill writes to `raw/conversations/` only. It does not trigger ingest. It does not touch `wiki/`. `wiki-ingest` is the next step, run separately when the owner is ready.
+**Hard boundary:** this skill writes to `raw/` only. It does not trigger ingest. It does not touch `wiki/`. `wiki-ingest` is the next step, run separately when the owner is ready.
 
 ---
 
@@ -24,10 +24,13 @@ Use whatever the owner already provided. If they pasted a transcript or pointed 
 Ask the owner (combine into one prompt; let them answer terse):
 
 1. **Title** — short, durable. If they don't have one, propose 2–3 options based on the content and let them pick.
-2. **Originating app** — Claude Code, Claude.ai, ChatGPT, Cursor, Perplexity, etc. If obvious from the source, just confirm rather than ask.
+2. **Originating app** — Claude Code, Claude.ai, ChatGPT, Cursor, Codex, Perplexity, etc. If obvious from the source, just confirm rather than ask.
 3. **URL** — only if they have a shared link. Optional.
 4. **`why_kept`** — one line on why this earned a slot. Future-them will thank them. Optional but encouraged.
-5. **Conversation kind** — pick one: `debug`, `research`, `learning`, `decision`, `other`. If you can clearly tell from the content, propose it and let them override.
+5. **`key_insight`** — one sentence capturing the primary takeaway. This is what makes conversations scannable without reading the full body. Not "we discussed kafka" but "consumer group rebalancing silently drops messages if session.timeout.ms < max processing time."
+6. **Conversation kind** — pick one: `debug`, `research`, `learning`, `decision`, `implementation`, `other`. If you can clearly tell from the content, propose it and let them override.
+7. **`codebase_context`** — project name, service name, relevant file paths. Only if the conversation touched a specific codebase. Skip for pure conceptual discussions.
+8. **`related_topics`** — wikilinks to existing wiki topic pages this conversation touches. Pre-ingest cross-references. Check `index.md` or use `obsidian search query="<concept>"` to find candidates.
 
 ## Step 3 — Write the writeup
 
@@ -115,9 +118,56 @@ What was chosen. Not just *what* but *why* — the specific factor that tipped t
 What this commits us to. What becomes harder. What follow-on work this triggers.
 ```
 
+### `implementation` — build-session-style
+
+```markdown
+## What was asked for
+
+The task, prompt, or goal. What was the AI asked to build, generate, or refactor?
+
+## What was generated
+
+Architecture decisions, file structure, key patterns used. Not a file dump —
+describe what the AI produced and the shape of the solution.
+
+## What worked vs what needed adjustment
+
+Honest split. The parts that landed clean vs the parts that needed manual
+intervention. Name the specific adjustments and why they were necessary.
+
+## Patterns worth keeping
+
+Techniques or approaches worth reusing in future sessions. The meta-lesson
+about how to build X-shaped things with AI assistance.
+
+## Gotchas
+
+Things that went wrong, subtle bugs, assumptions that didn't hold, generated
+code that looked right but wasn't.
+```
+
 ### `other`
 
 Pick whichever shape teaches best. Be honest about why you picked it.
+
+### Universal suffix sections (apply to all conversation kinds)
+
+Every conversation writeup, regardless of kind, ends with these two optional sections after the kind-specific body:
+
+```markdown
+## What changed
+
+If the conversation led to code changes, config edits, wiki updates, or
+architecture decisions — name them. File paths, PR numbers, the bridge
+between "we talked about it" and "it actually happened." Omit if the
+conversation was purely exploratory.
+
+## Actionable followups
+
+Things that came up but weren't resolved. Future work seeds — a related
+service to audit, a pattern to apply elsewhere, a question to investigate.
+Omit if nothing was left dangling.
+```
 
 ### Voice rules (apply across all shapes)
 
@@ -139,12 +189,21 @@ title: "<title>"
 participants:
   - "user"
   - "<other-participant>"   # e.g. "claude-opus-4.7", "chatgpt-gpt-4o", "gemini-2.5-pro"
-original_app: "<app>"        # Claude Code, Claude.ai, ChatGPT, Cursor, ...
+original_app: "<app>"        # Claude Code, Claude.ai, ChatGPT, Cursor, Codex, ...
 url: "<url-if-shared>"       # empty string if not shared
 clipped: <YYYY-MM-DD>        # today's date
-conversation_kind: "<kind>"  # debug | research | learning | decision | other
+conversation_kind: "<kind>"  # debug | research | learning | decision | implementation | other
 why_kept: "<one-line>"       # empty string if not provided
-tags: []
+key_insight: "<one-sentence takeaway>"
+codebase_context:            # omit block entirely for pure conceptual discussions
+  project: "<project-name>"
+  service: "<service-name>"
+  files:
+    - "<relevant-file-path>"
+related_topics:              # pre-ingest wikilinks to existing topic pages
+  - "[[topic-a]]"
+  - "[[topic-b]]"
+tags: [conversation]
 ingested: false
 ---
 ```
@@ -166,4 +225,4 @@ Tell the owner:
 - A one-sentence description of what the writeup covers.
 - A reminder that the source isn't ingested yet — they can run `wiki-ingest` on it whenever, or let `daily-digest` pick it up automatically.
 
-**Do not** trigger ingest. **Do not** touch `wiki/`. **Do not** modify `index.md` or `log.md`. This skill's job is just to land a clean source in `raw/conversations/`.
+**Do not** trigger ingest. **Do not** touch `wiki/`. **Do not** modify `index.md` or `log.md`. This skill's job is just to land a clean source in `raw/`.

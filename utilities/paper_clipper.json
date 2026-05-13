@@ -5,6 +5,11 @@
 	"noteContentFormat": "# {{title}}\n\n> **Source:** [{{site}}]({{url}}) · **Authors:** {{author}} · **Published:** {{published|date:\"YYYY-MM-DD\"}}\n\n## Abstract\n\n_Abstract from the source page, if captured. Otherwise, backfilled at ingest from the PDF body._\n\n{{content}}\n\n## Notes\n\n_Reading notes go here, if any. The agent will read the PDF if present alongside this file (same slug)._",
 	"properties": [
 		{
+			"name": "type",
+			"value": "Raw",
+			"type": "text"
+		},
+		{
 			"name": "source_type",
 			"value": "paper",
 			"type": "text"
@@ -57,5 +62,5 @@
 	],
 	"triggers": [],
 	"noteNameFormat": "paper-{{title|safe_name}}",
-	"path": "raw/papers"
+	"path": "raw"
 }

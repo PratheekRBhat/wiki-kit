@@ -48,17 +48,19 @@ Options:
   -h    Show this help.
 
 Auto-wrap: with no arguments, before the main scan, this script auto-wraps
-any manually-dropped PDFs or audio files in raw/{articles,papers,talks}/
-that don't have a companion .md. Targeted runs (specific files or dirs)
-skip the auto-wrap — run with no args to sweep orphans.
+any manually-dropped PDFs, audio, video, or ebook files in raw/ that don't
+have a companion .md. source_type is inferred from the file extension
+(.pdf → paper, audio/video → talk, .epub/.mobi/.azw3 → book, else article).
+Targeted runs (specific files or dirs) skip the auto-wrap — run with no
+args to sweep orphans.
 
 Examples:
   $(basename "$0")
-  $(basename "$0") raw/talks/talk-foo.md
-  $(basename "$0") raw/papers
-  $(basename "$0") -f raw/talks/talk-foo.md
-  $(basename "$0") -w raw/talks/talk-dense-accent.md
-  $(basename "$0") -n              # preview pending work
+  $(basename "$0") raw/talk-foo.md
+  $(basename "$0") raw/                        # scan flat raw/
+  $(basename "$0") -f raw/talk-foo.md
+  $(basename "$0") -w raw/talk-dense-accent.md
+  $(basename "$0") -n                          # preview pending work
 EOF
 }
 
@@ -274,14 +276,20 @@ prepare_talk() {
 }
 
 # ---------------- orphan auto-wrap ----------------
-# Before the main scan, catch any non-.md files sitting in raw/articles/,
-# raw/papers/, or raw/talks/ that don't have a companion .md. These happen
-# when a PDF or audio file is dropped manually (e.g. a paper a friend sent,
-# a podcast downloaded by hand). Auto-create a stub .md so downstream steps
-# (prepare backfill, ingest, digest) can see them.
+# Before the main scan, catch any non-.md files sitting flat in raw/
+# that don't have a companion .md. These happen when a PDF or audio file
+# is dropped manually (e.g. a paper a friend sent, a podcast downloaded by
+# hand). Auto-create a stub .md so downstream steps (prepare backfill,
+# ingest, digest) can see them.
 #
-# raw/book/ is deliberately skipped — books go through reading-companion,
-# which seeds its own book-home card.
+# source_type is inferred from the file extension:
+#   .pdf                                       → paper
+#   .mp3 .m4a .wav .opus .flac .mp4 .mov .webm → talk
+#   .epub .mobi .azw3                          → book
+#   anything else                              → article
+#
+# Books still flow through reading-companion for the chapter-by-chapter
+# ingest, but the stub gives reading-companion a known starting point.
 
 # Format a file's mtime as YYYY-MM-DD. Handles both macOS (stat -f) and GNU
 # (stat -c) without requiring GNU coreutils on Mac.
@@ -294,25 +302,41 @@ file_mtime_date() {
   fi
 }
 
+# Infer source_type from a filename's extension. Echoes one of:
+# article | paper | talk | book.
+infer_source_type() {
+  local fname="$1"
+  local ext="${fname##*.}"
+  # lowercase the extension without invoking tr (portable across bash/zsh).
+  ext="$(printf '%s' "$ext" | awk '{print tolower($0)}')"
+  case "$ext" in
+    pdf)                                              echo "paper" ;;
+    mp3|m4a|wav|opus|flac|mp4|mov|webm|mkv)           echo "talk"  ;;
+    epub|mobi|azw3)                                   echo "book"  ;;
+    *)                                                echo "article" ;;
+  esac
+}
+
 wrap_orphans() {
   local wrapped=0
-  local subdir type dir file slug md stub_date fname
-  for subdir in articles papers talks; do
-    type="${subdir%s}"
-    dir="$REPO_ROOT/raw/$subdir"
-    [[ -d "$dir" ]] || continue
+  local dir="$REPO_ROOT/raw"
+  local file fname slug md stub_date type
 
-    while IFS= read -r -d '' file; do
-      fname="$(basename "$file")"
-      slug="${fname%.*}"
-      md="$dir/${slug}.md"
-      [[ -f "$md" ]] && continue       # already has a companion MD
-      stub_date=$(file_mtime_date "$file")
+  [[ -d "$dir" ]] || return 0
 
-      case "$type" in
-        article)
-          cat > "$md" <<EOF
+  while IFS= read -r -d '' file; do
+    fname="$(basename "$file")"
+    slug="${fname%.*}"
+    md="$dir/${slug}.md"
+    [[ -f "$md" ]] && continue       # already has a companion MD
+    stub_date=$(file_mtime_date "$file")
+    type=$(infer_source_type "$fname")
+
+    case "$type" in
+      article)
+        cat > "$md" <<EOF
 ---
+type: Raw
 source_type: "article"
 title: "$slug"
 clipped: $stub_date
@@ -321,10 +345,11 @@ ingested: false
 
 _Wrapped from orphan file: $fname. Edit frontmatter and body as needed._
 EOF
-          ;;
-        paper)
-          cat > "$md" <<EOF
+        ;;
+      paper)
+        cat > "$md" <<EOF
 ---
+type: Raw
 source_type: "paper"
 title: "$slug"
 clipped: $stub_date
@@ -333,10 +358,11 @@ ingested: false
 
 _Wrapped from orphan file: $fname. The file is already on disk alongside this MD; prepare.sh will skip the PDF fetch._
 EOF
-          ;;
-        talk)
-          cat > "$md" <<EOF
+        ;;
+      talk)
+        cat > "$md" <<EOF
 ---
+type: Raw
 source_type: "talk"
 title: "$slug"
 audio_file: "$fname"
@@ -348,15 +374,29 @@ ingested: false
 
 _Paste transcript here, or run \`utilities/prepare.sh\` to transcribe \`$fname\` via Whisper (requires OPENAI_API_KEY)._
 EOF
-          ;;
-      esac
+        ;;
+      book)
+        cat > "$md" <<EOF
+---
+type: Raw
+source_type: "book"
+title: "$slug"
+file: "$fname"
+clipped: $stub_date
+ingested: false
+---
 
-      echo "• wrapped orphan: $file" >&2
-      wrapped=$((wrapped + 1))
-    done < <(find "$dir" -maxdepth 1 -type f \
-      ! -name '*.md' ! -name 'README.md' ! -name '.gitkeep' ! -name '.DS_Store' \
-      -print0 2>/dev/null)
-  done
+_Wrapped from orphan file: $fname. Books flow through the \`reading-companion\` skill — start with "let's read $slug" to seed the book-home card._
+EOF
+        ;;
+    esac
+
+    echo "• wrapped orphan: $file (source_type: $type)" >&2
+    wrapped=$((wrapped + 1))
+  done < <(find "$dir" -maxdepth 1 -type f \
+    ! -name '*.md' ! -name 'README.md' ! -name '.gitkeep' ! -name '.DS_Store' \
+    -print0 2>/dev/null)
+
   (( wrapped > 0 )) && echo "• wrapped $wrapped orphan file(s)" >&2
   return 0
 }

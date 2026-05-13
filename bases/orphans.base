@@ -1,0 +1,37 @@
+filters:
+  and:
+    - file.inFolder("wiki")
+    - file.inFolder("wiki/digests") == false
+    - file.inFolder("wiki/sources") == false
+    - file.hasTag("source") == false
+    - file.hasTag("moc") == false
+    - file.name != "index"
+    - file.name != "log"
+    - file.backlinks.length == 0
+properties:
+  file.name:
+    displayName: Topic
+  domain:
+    displayName: Domain
+  updated:
+    displayName: Last Updated
+  tags:
+    displayName: Tags
+views:
+  - type: table
+    name: Potential Orphans (backlinks == 0)
+    order:
+      - file.name
+      - domain
+      - tags
+      - updated
+  - type: table
+    name: No Related Links (proxy)
+    filters:
+      and:
+        - related == ""
+    order:
+      - file.name
+      - domain
+      - tags
+      - updated

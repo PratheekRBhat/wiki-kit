@@ -1,24 +1,34 @@
 # Log
 
-Chronological, append-only log of every operation on the wiki. Latest entries go at the bottom.
+Chronological, append-only log of wiki operations. Latest entries go at the bottom.
 
 Entry format:
 
-```
+```text
 ## [YYYY-MM-DD] <op> | <subject>
 
 - Touched: pages created / updated
-- Notes: optional, 1-2 lines
+- Notes: optional, 1-3 lines
 ```
 
-Quick scan of recent activity:
+Ops:
+
+- `ingest`
+- `read`
+- `discussed`
+- `query`
+- `query-filed`
+- `lint`
+- `digest`
+- `refactor`
+- `meta`
+
+Quick scan:
 
 ```bash
-grep "^## \[" log.md | tail -10
+grep "^## \\[" log.md | tail -10
 ```
-
-Ops: `ingest`, `read`, `discussed`, `query`, `query-filed`, `lint`, `refactor`, `meta`.
 
 ---
 
-<!-- First entry: add a `meta | Wiki initialized` line when you fill in CLAUDE.md. -->
+<!-- First useful entry is usually a `meta | Wiki initialized` line after the owner customizes CLAUDE.md or starts ingesting. -->

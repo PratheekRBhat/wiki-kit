@@ -1,0 +1,47 @@
+# Stale Topics
+# Topic pages that may need a refresh.
+#
+# Ideal query: topics where updated predates the most recent contributing
+# source's clipped date. This requires a cross-file date join (compare
+# topic.updated against max(source_card.clipped for source_card in topic.sources)).
+# Bases queries frontmatter on individual notes — cross-file aggregation is
+# not supported. Deferred to a future lint skill.
+#
+# Proxy used here: status == "stable" AND updated older than 90 days.
+# "stable" means the page was once considered complete; 90 days without a
+# touch is a reasonable signal that newer sources may have superseded it.
+# This will produce false positives (genuinely stable topics) but zero
+# false negatives among the worst-stale candidates.
+
+formulas:
+  days_since_updated: 'if(updated, (today() - date(updated)).days, 9999)'
+
+filters:
+  and:
+    - file.inFolder("wiki")
+    - 'status == "stable"'
+    - 'if(updated, (today() - date(updated)).days > 90, true)'
+
+properties:
+  file.name:
+    displayName: "Topic"
+  domain:
+    displayName: "Domain"
+  updated:
+    displayName: "Last Updated"
+  formula.days_since_updated:
+    displayName: "Days Since Update"
+
+views:
+  - type: table
+    name: "Stale Stable Topics"
+    order:
+      - file.name
+      - domain
+      - updated
+      - formula.days_since_updated
+    groupBy:
+      property: domain
+      direction: ASC
+    summaries:
+      formula.days_since_updated: Average

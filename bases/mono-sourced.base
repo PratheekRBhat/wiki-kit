@@ -1,0 +1,21 @@
+filters:
+  and:
+    - file.inFolder("wiki")
+    - file.hasTag("source") == false
+    - if(sources, sources.length == 1, false)
+formulas:
+  source_count_proxy: if(sources, sources.toString(), "")
+properties:
+  file.name:
+    displayName: Topic
+  domain:
+    displayName: Domain
+  sources:
+    displayName: Sources
+views:
+  - type: table
+    name: Mono-Sourced Topics
+    order:
+      - file.name
+      - domain
+      - sources

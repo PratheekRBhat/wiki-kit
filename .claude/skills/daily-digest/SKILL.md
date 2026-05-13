@@ -25,7 +25,7 @@ Batches an ingest session across everything pending in `raw/`, then writes a sho
 
 Run `utilities/prepare.sh` from the repo root. This does three things in one pass:
 
-- **Orphan-wrap**: any manually-dropped PDFs or audio files in `raw/{articles,papers,talks}/` without a companion `.md` get a stub frontmatter wrapper auto-generated (with `clipped:` set from the file's mtime).
+- **Orphan-wrap**: any manually-dropped PDFs or audio files in `raw/<subdir>/` (e.g. `raw/papers/`, `raw/talks/`) without a companion `.md` get a stub frontmatter wrapper auto-generated; `source_type` is derived from the subdir name and `clipped:` is set from the file's mtime.
 - **Backfill**: PDFs downloaded for papers, transcripts fetched for talks (YouTube auto-captions by default; `-w` flag routes through Whisper for higher quality).
 - **Skip**: sources already marked `ingested: true`, or already fully prepared.
 
@@ -60,6 +60,7 @@ Otherwise, write `wiki/digests/<YYYY-MM-DD>.md`:
 
 ```yaml
 ---
+type: Digest
 date: YYYY-MM-DD
 sources:
   - <source-slug-1>

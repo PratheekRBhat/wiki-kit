@@ -2,8 +2,13 @@
 	"schemaVersion": "0.1.0",
 	"name": "YouTube Talk",
 	"behavior": "create",
-	"noteContentFormat": "# {{title}}\n\n> **Channel:** {{author}} · **URL:** [{{url}}]({{url}}) · **Published:** {{published|date:\"YYYY-MM-DD\"}}\n\n## Description\n\n{{description}}\n\n## Transcript\n\n_Paste transcript here, or run `yt-dlp --write-auto-sub --skip-download --sub-format vtt {{url}}` and clean it up._",
+	"noteContentFormat": "# {{title}}\n\n> **Channel:** {{author}} · **URL:** [{{url}}]({{url}}) · **Published:** {{published|date:\"YYYY-MM-DD\"}}\n\n## Description\n\n{{description}}\n\n## Transcript\n\n_Paste transcript here, or run `utilities/prepare.sh` after clipping to backfill it._",
 	"properties": [
+		{
+			"name": "type",
+			"value": "Raw",
+			"type": "text"
+		},
 		{
 			"name": "source_type",
 			"value": "talk",
@@ -50,5 +55,5 @@
 		"https://youtu.be/*"
 	],
 	"noteNameFormat": "talk-{{title|safe_name}}",
-	"path": "raw/talks"
+	"path": "raw"
 }

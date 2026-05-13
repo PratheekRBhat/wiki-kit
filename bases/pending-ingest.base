@@ -1,0 +1,24 @@
+# Pending Ingest
+# Raw files where ingest hasn't happened yet.
+# Filter: path starts with raw/ AND ingested == false
+
+filters:
+  and:
+    - file.inFolder("raw")
+    - 'ingested == false'
+
+properties:
+  file.name:
+    displayName: "File"
+  source_type:
+    displayName: "Source Type"
+  clipped:
+    displayName: "Clipped"
+
+views:
+  - type: table
+    name: "Pending Ingest"
+    order:
+      - file.name
+      - source_type
+      - clipped

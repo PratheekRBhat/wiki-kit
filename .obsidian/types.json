@@ -1,0 +1,24 @@
+{
+  "types": {
+    "tags": "tags",
+    "aliases": "aliases",
+    "status": "text",
+    "source_type": "text",
+    "updated": "date",
+    "published": "date",
+    "clipped": "date",
+    "started": "date",
+    "sources": "multitext",
+    "related": "multitext",
+    "contributed_to": "multitext",
+    "domain": "multitext",
+    "title": "text",
+    "author": "text",
+    "publisher": "text",
+    "isbn": "text",
+    "url": "text",
+    "current": "text",
+    "ingested": "checkbox",
+    "type": "text"
+  }
+}

@@ -1,0 +1,27 @@
+filters:
+  and:
+    - file.inFolder("wiki")
+    - status == "draft"
+    - if(updated, (today() - date(updated)).days > 14, true)
+formulas:
+  days_since_updated: if(updated, (today() - date(updated)).days, 9999)
+properties:
+  file.name:
+    displayName: File
+  domain:
+    displayName: Domain
+  updated:
+    displayName: Last Updated
+  formula.days_since_updated:
+    displayName: Days Stale
+views:
+  - type: table
+    name: Stale Drafts
+    groupBy:
+      property: updated
+      direction: ASC
+    order:
+      - file.name
+      - domain
+      - updated
+      - formula.days_since_updated

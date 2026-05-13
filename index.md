@@ -1,18 +1,12 @@
 # Index
 
-The navigation catalog for this wiki. The agent maintains this file — every new topic page gets an entry, every removed page gets removed.
+The navigation catalog for this wiki. The agent maintains this file. Every new topic page gets an entry. Every removed page gets removed.
 
-Groups mirror the `tags:` field on topic pages. Within each group, ordered alphabetically.
-
----
-
-## Architectures
-
-_None yet._
+Groups mirror the primary `tags:` field on topic pages. Within each group, order alphabetically.
 
 ---
 
-## Models
+## Languages
 
 _None yet._
 
@@ -24,7 +18,19 @@ _None yet._
 
 ---
 
-## Techniques
+## Practices
+
+_None yet._
+
+---
+
+## Patterns
+
+_None yet._
+
+---
+
+## Tools
 
 _None yet._
 
@@ -54,8 +60,17 @@ _None yet._
 
 ---
 
+## Digests
+
+_None yet._
+
+---
+
 ## Meta
 
-- [[CLAUDE]] — the agent's operating manual.
+- [[CLAUDE]] — the agent operating manual.
 - [[README]] — human-facing overview.
-- [[glossary]] — aliases and alternate names for topic pages.
+- [[glossary]] — alias table for canonical topic slugs.
+- [[raw/README]] — bronze-layer rules and frontmatter reference.
+- [[type/concept]] — Tolaria type definitions start here.
+- [[utilities/README]] — clipper and helper-script reference.

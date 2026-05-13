@@ -1,0 +1,29 @@
+filters:
+  or:
+    - source_type == "conversation"
+    - file.hasTag("conversation")
+properties:
+  file.name:
+    displayName: File
+  title:
+    displayName: Title
+  conversation_kind:
+    displayName: Kind
+  key_insight:
+    displayName: Key Insight
+  original_app:
+    displayName: App
+  clipped:
+    displayName: Clipped
+  ingested:
+    displayName: Ingested
+views:
+  - type: table
+    name: All Conversations
+    order:
+      - file.name
+      - conversation_kind
+      - key_insight
+      - original_app
+      - clipped
+      - ingested

@@ -1,31 +1,30 @@
 # raw/
 
-Immutable source material. The agent **reads** from here and **never writes** here.
-
-The **only** allowed mutation is flipping `ingested: false → true` in a raw file's frontmatter at the end of an ingest.
+Immutable source material. The agent reads from here and should not rewrite it, except for flipping `ingested: false` to `ingested: true` when an ingest finishes.
 
 ---
 
 ## Layout
 
-- `book/` — books and long-form courses. Optional — populated only if a long-form source is adopted (a specific book, a structured course, a lecture series with companion notebooks). Empty otherwise.
-- `articles/` — blog posts and long-form articles. Clipped via [Obsidian Web Clipper](https://obsidian.md/clipper) using `utilities/article_clipper.json`.
-- `papers/` — academic papers. Clipped from arXiv via `utilities/arxiv_paper_clipper.json` (captures metadata + abstract). **Always accompany the clip with the PDF** (e.g. `paper-<slug>.pdf`) — the HTML page doesn't contain the paper body; the PDF is the canonical source.
-- `talks/` — conference talks and YouTube videos. Clipped via `utilities/youtube_talk_clipper.json` (captures metadata + description). **Always accompany the clip with the transcript** — YouTube's DOM doesn't contain the transcript at clip time. Use `utilities/youtube_transcript.sh` (see below) or paste manually from YouTube's transcript panel.
-- `conversations/` — insightful LLM chats (Claude, ChatGPT, etc.) saved as sources. Created by the `save-conversation` skill, which writes a *writeup* (not a transcript) shaped to the conversation kind — RCA for debug sessions, findings for research, narrative explainer for learning, ADR for decisions.
+- `*.md` — flat source files. `source_type:` differentiates articles, papers, talks, books, chapters, and conversations.
+- Articles are blog posts, docs, or long-form essays.
+- Papers are academic papers and whitepapers. Pair them with a sibling PDF when possible.
+- Talks are conference talks, videos, podcasts, or recorded lectures. Pair them with a transcript when possible.
+- Conversations are saved LLM chat writeups created by the `save-conversation` skill.
 
-See [`utilities/README.md`](../utilities/README.md) for Web Clipper template setup.
+See [utilities/README.md](../utilities/README.md) for clipper setup and helper scripts.
 
 ---
 
-## Frontmatter convention
+## Frontmatter Convention
 
-Every source file has YAML frontmatter emitted by the clipper template. The exact shape depends on `source_type`:
+Every source file has YAML frontmatter. The exact shape depends on `source_type`.
 
-### Article (`source_type: article`)
+### Article
 
 ```yaml
 ---
+type: Raw
 source_type: "article"
 title: "..."
 author: "..."
@@ -39,71 +38,35 @@ ingested: false
 ---
 ```
 
-### Paper (`source_type: paper`)
+### Paper
 
 ```yaml
 ---
+type: Raw
 source_type: "paper"
 title: "..."
 authors: [...]
-url: "..."              # landing page / abstract page
-arxiv_id: "..."         # optional; if present, PDF auto-fetched from arxiv.org
-pdf_url: "..."          # optional; direct PDF URL when not on arXiv
-site: "..."             # optional; only set by the generic paper clipper
+url: "..."
+arxiv_id: "..."
+pdf_url: "..."
+site: "..."
 published: YYYY-MM-DD
 clipped: YYYY-MM-DD
-abstract: "..."         # may be empty for non-arXiv papers
+abstract: "..."
 ingested: false
 ---
 ```
 
-**How the PDF gets fetched.** `prepare.sh`'s paper handler tries these in order:
-
-1. `<slug>.pdf` already exists next to the `.md` → skip (honors manual drops).
-2. `arxiv_id` set → `curl`s `https://arxiv.org/pdf/<arxiv_id>`.
-3. `pdf_url` set → `curl`s that URL directly.
-4. `url` set and it points at a PDF (`.pdf` extension, or HEAD request returns `Content-Type: application/pdf`) → downloads it.
-5. None of the above → error with a clear "set `pdf_url` / `arxiv_id` / drop the PDF manually" message.
-
-The manual-drop path is first-class — for paywalled papers, publisher landing pages that hide the PDF behind auth (ACM, IEEE, Springer), or PDFs with no web presence (drafts, friends emailing you a file), just drop `paper-<slug>.pdf` alongside the `.md` and `prepare.sh` won't try to fetch anything.
-
-### Conversation (`source_type: conversation`)
+### Talk
 
 ```yaml
 ---
-source_type: "conversation"
-title: "..."
-participants:
-  - "user"
-  - "claude-opus-4.7"           # or chatgpt-gpt-4o, gemini-2.5-pro, ...
-original_app: "Claude Code"     # or Claude.ai, ChatGPT, Cursor, ...
-url: ""                         # if a shared link
-clipped: YYYY-MM-DD
-conversation_kind: "debug"      # debug | research | learning | decision | other
-why_kept: "..."                 # one-line, optional
-ingested: false
----
-```
-
-Conversations are saved by the `save-conversation` skill. The body is a **writeup** of the chat, not a verbatim transcript or short summary. The shape depends on `conversation_kind`:
-
-- **`debug`** — RCA-style: problem → hypotheses tried → root cause → fix → followups.
-- **`research`** — findings-style: question → what we found → open threads.
-- **`learning`** — narrative explainer: hook → mechanism → worked example → gotchas.
-- **`decision`** — ADR-style: context → options considered → decision → consequences.
-- **`other`** — pick the shape that teaches best.
-
-The writeup uses the wiki's teaching voice (per `CLAUDE.md`). When ingested, conversations behave like any other source — `wiki-ingest` synthesises topic pages from them. `prepare.sh` no-ops on conversations (body is already complete at write time).
-
-### Talk (`source_type: talk`)
-
-```yaml
----
+type: Raw
 source_type: "talk"
 title: "..."
 channel: "..."
-url: "..."                # YouTube / podcast URL (for clipped sources)
-audio_file: "..."         # local audio filename next to this MD (for manual drops)
+url: "..."
+audio_file: "..."
 duration: "PT_H_M_S"
 published: YYYY-MM-DD
 clipped: YYYY-MM-DD
@@ -111,113 +74,124 @@ ingested: false
 ---
 ```
 
-Either `url:` or `audio_file:` must be set. If both are present, `audio_file:` wins. Local audio files always transcribe via Whisper (auto-captions only exist for YouTube URLs).
+Either `url:` or `audio_file:` must be present. If both exist, `audio_file:` wins.
 
+### Book
+
+```yaml
 ---
-
-## Manually-dropped files (orphan auto-wrap)
-
-Not every source goes through the Web Clipper. Sometimes you drop a PDF a friend emailed you, an mp3 of a downloaded podcast, or a paper pulled from a paywalled journal — no clipper involved, no frontmatter.
-
-`prepare.sh` handles this automatically. Before its main scan, it looks for non-`.md` files in `raw/articles/`, `raw/papers/`, and `raw/talks/` that don't have a companion `.md` next to them. For each orphan, it auto-generates a stub `.md` with:
-
-- `source_type` inferred from the subdirectory.
-- `title` from the filename (rough — the ingest agent refines this on the source card).
-- `clipped:` set to the file's `mtime` formatted as `YYYY-MM-DD`.
-- `ingested: false`.
-- For talks: `audio_file: <filename>` so the transcript step routes to Whisper.
-
-After that, the file joins the normal pipeline. You can edit the stub frontmatter if you want a sharper title or other metadata; the auto-wrap is just "get it into the queue."
-
-`raw/book/` is deliberately skipped — books go through the `reading-companion` skill, which seeds its own book-home card with a different schema.
-
+type: Raw
+source_type: "book"
+title: "..."
+file: "..."
+url: "..."
+clipped: YYYY-MM-DD
+ingested: false
 ---
-
-## The `ingested` flag — the work queue
-
-Every clipped source lands with `ingested: false`. This is the queue.
-
-- **Pending:** `ingested: false` — the source has been clipped but not yet incorporated into the wiki.
-- **Done:** `ingested: true` — the agent has processed this source, written a `wiki/sources/<slug>.md` card, and created or extended the related topic pages in `wiki/`.
-
-List the queue any time:
-
-```bash
-grep -L "ingested: true" raw/articles/*.md raw/papers/*.md raw/talks/*.md
 ```
 
-The agent flips the flag to `true` at the end of an ingest and appends an entry to `log.md`.
+Books still flow through `reading-companion`. This raw wrapper is just the bronze-layer source.
+
+### Conversation
+
+```yaml
+---
+type: Raw
+source_type: "conversation"
+title: "..."
+participants:
+  - "user"
+  - "assistant"
+original_app: "..."
+url: ""
+clipped: YYYY-MM-DD
+conversation_kind: "debug"
+why_kept: "..."
+ingested: false
+---
+```
+
+Conversation kinds: `debug | research | learning | decision | other`.
 
 ---
 
-## Ingest workflow (how the agent processes `raw/`)
+## The `ingested` Flag
 
-When the owner says "ingest the new articles" (or points at a specific file), the agent:
+This is the work queue.
 
-1. **Finds pending sources.** Greps for `ingested: false` under `raw/`. Picks the one(s) named, or the full set if asked for "all".
-2. **Reads frontmatter + body.** For each source file.
-3. **Backfills missing metadata from the body.** Frontmatter fields can be empty when the upstream site lacks proper Schema.org / Open Graph markup (Medium mirrors, arXiv, etc.). The agent scans the body for author names, publish dates, and other metadata and notes them for the source card — it does not edit the `raw/` file.
-4. **Extends existing topic pages first.** For every idea the source touches that already has a `wiki/<topic>.md`, the agent updates that page (new section, new framing, new citation). This is where the real synthesis happens.
-5. **Creates new topic pages** only for genuinely new ideas — a term or concept the wiki has never seen. `tags:` on the page determines its group in `index.md`.
-6. **Writes the source card** at `wiki/sources/<slug>.md` *last*. Reading notes for the source: TL;DR, key claims, what's novel vs the wiki's prior state, a quote or two, the list of topic pages it contributed to.
-7. **Flags contradictions explicitly.** If the new source contradicts an existing topic page, both pages get updated with a note. The agent does not silently overwrite.
-8. **Flips `ingested: true`** in the `raw/` frontmatter. (This is the **one** write the agent makes to `raw/` — the flag only.)
-9. **Updates `index.md`** with any new topic pages.
-10. **Appends to `log.md`** with op `ingest`.
+- `ingested: false` means pending.
+- `ingested: true` means the source has already been synthesized into the wiki.
 
-A batch ingest ("ingest all pending") does this per source, serially.
+List pending raw files:
+
+```bash
+grep -L "ingested: true" raw/*.md
+```
 
 ---
 
-## Metadata gaps — known cases
+## Orphan Auto-Wrap
 
-Some sites systematically fail the clipper. Good to know when a clip comes through thin:
+Not every source starts as a clean markdown clip. Sometimes the owner drops a PDF, audio file, or ebook directly into `raw/`.
 
-- **Freedium (Medium paywall bypass).** `freedium-mirror.cfd` strips most Medium metadata — `author` and `published` will usually be empty. **Fix:** clip from the original Medium URL, not the Freedium mirror. Freedium is great for reading, bad for metadata.
-- **arXiv abstract pages.** `authors` and `published` don't match arXiv's DOM structure by default. Authors are usually in the body; published date appears as "Submitted on …" text. Agent extracts both at ingest.
-- **Substack / self-hosted blogs.** Highly variable. First clip will reveal what comes through. The agent's body scan is the safety net.
-- **YouTube.** Description is truncated to what renders without clicking "Show more". Duration is ISO 8601 (`PT#H#M#S`). Transcript is never in the DOM — has to be pasted or generated separately.
+`utilities/prepare.sh` handles that. In auto-discovery mode it scans for non-`.md` files without companion wrappers and creates a stub `.md` beside them.
 
-## Body content gaps
+Source type is inferred from file extension:
 
-The clipper templates capture everything that's accessible in the page's rendered HTML. Two source types have body content that **isn't** in the HTML and needs a separate step before ingest:
+- `.pdf` → `paper`
+- audio or video formats such as `.mp3`, `.m4a`, `.wav`, `.mp4`, `.mov`, `.webm`, `.mkv` → `talk`
+- `.epub`, `.mobi`, `.azw3` → `book`
+- everything else → `article`
 
-- **Papers** — arXiv's abstract page only contains the abstract. The paper body lives in the PDF at `https://arxiv.org/pdf/<arxiv_id>`. A paper needs the PDF dropped alongside the clipped MD (same slug) so the ingest agent can read both.
-- **Talks** — YouTube's page DOM doesn't contain the transcript. A talk needs its `## Transcript` section filled in before ingest, otherwise the agent only has the description (~1-3 sentences) to work with.
+This keeps the bronze layer flat and still gives the agent something structured to ingest.
 
-Both gaps are handled by one command:
+---
+
+## Ingest Workflow
+
+When the owner says "ingest this", the agent:
+
+1. Finds the pending source in `raw/`
+2. Reads frontmatter and body
+3. Backfills missing metadata on the source card if needed
+4. Extends existing topic pages first
+5. Creates new topic pages only for truly new ideas
+6. Writes the source card
+7. Flips `ingested: true`
+8. Updates `index.md`
+9. Appends to `log.md`
+
+The raw file itself stays otherwise unchanged.
+
+---
+
+## Body Gaps
+
+Clipper output is not always enough on its own.
+
+- Papers usually need the PDF body.
+- Talks usually need a transcript.
+
+That is what `utilities/prepare.sh` is for:
 
 ```bash
 utilities/prepare.sh
+utilities/prepare.sh raw/paper-some-source.md
+utilities/prepare.sh raw/talk-some-talk.md
+utilities/prepare.sh -f raw/talk-some-talk.md
 ```
 
-With no arguments, it scans every `.md` under `raw/` that isn't yet `ingested: true` and backfills what's missing — `curl`s the PDF for papers, splices a transcript into talks via `utilities/youtube_transcript.sh`. Articles are a no-op.
-
-You can also point it at specific files or directories:
-
-```bash
-utilities/prepare.sh raw/talks/talk-foo.md
-utilities/prepare.sh raw/papers
-utilities/prepare.sh -f raw/talks/talk-foo.md   # force re-fetch
-```
-
-See [`utilities/README.md`](../utilities/README.md) for the full usage, safety notes, and quality caveats.
-
-## Pre-ingest checklist
-
-Before running `ingest` on any pending source:
-
-- [ ] Run `utilities/prepare.sh` (or target specific files). That one command covers every source type.
-- [ ] (Optional) Skim `raw/` for the clipped MDs and verify the frontmatter looks reasonable — the agent will backfill missing metadata from the body at ingest time, but it's useful to know what's thin going in.
+Run it before ingest when the source depends on a PDF or transcript.
 
 ---
 
-## Naming conventions
+## Naming Conventions
 
-The clipper templates produce filenames following these patterns:
+The clipper templates usually emit names like:
 
-- Articles: `{{date}}-{{title|safe_name}}.md` — date prefix for chronological sort.
-- Papers: `paper-{{title|safe_name}}.md` — title prefix, no date (papers are timeless).
-- Talks: `talk-{{title|safe_name}}.md` — same.
+- `YYYY-MM-DD-<title>.md` for articles
+- `paper-<title>.md` for papers
+- `talk-<title>.md` for talks
+- `conversation-<title>.md` for saved chats
 
-Filenames can be messy (double spaces, punctuation quirks from `safe_name`). That's fine — humans and the agent both work off frontmatter, not filenames.
+The filenames do not need to be pretty. Frontmatter and source-card slugs are what actually matter.
