@@ -106,6 +106,7 @@ source_type: article | paper | talk | book | chapter | conversation
 title: Human-readable title
 author: "Author Name(s)"
 url: <original url, if applicable>
+raw_source: raw/<source_type>/<filename>.md
 published: YYYY-MM-DD
 clipped: YYYY-MM-DD
 tags: [source]
@@ -117,6 +118,8 @@ updated: YYYY-MM-DD
 
 # Human-readable title
 ```
+
+`raw_source:` links back to the original file in `raw/`. This is the provenance trail — especially valuable for conversations, where the raw writeup preserves session detail (error messages, config values, reasoning chains) that the source card deliberately compresses.
 
 Body shape (TL;DR, key claims, what's novel, quotes, where it contributed) is documented in the `wiki-ingest` skill.
 

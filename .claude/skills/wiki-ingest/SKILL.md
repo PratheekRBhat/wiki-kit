@@ -50,7 +50,7 @@ In this order:
 1. `mkdir -p wiki/sources/` if it doesn't exist.
 2. **Extend existing topic pages first.** For each existing topic the source touches, add the new material (new section / paragraph / example / citation) and bump `updated:`. Add the source slug to the page's `sources:` frontmatter. Inline-cite the source the first time it's used on the page: `per [[sources/article-foo]]`.
 3. **Create new topic pages** for genuinely new ideas. One idea per page. Flat slug, short, durable.
-4. **Write the source card last.** By writing it last, all `[[topic]]` wikilinks in its "Where it contributed" section resolve to pages that already exist on disk.
+4. **Write the source card last.** By writing it last, all `[[topic]]` wikilinks in its "Where it contributed" section resolve to pages that already exist on disk. Set `raw_source:` to the path of the original raw file (e.g. `raw/articles/2026-05-12-go-errors.md`) — this is the backlink from the source card to its origin.
 
    When a source seeds a specific claim on a topic page, drop a `^block-id` on that claim and cite it from the source card as `[[topic#^block-id]]`. Coarse-grained "contributed to `[[topic]]`" still works; block refs are the upgrade when claim-level provenance matters.
 
