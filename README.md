@@ -14,82 +14,124 @@ All generation, linking, and upkeep is done by an LLM agent following the conven
 
 ## Layout
 
-Three layers plus navigation. That's it.
+Three layers plus navigation.
 
-- `raw/` — **Bronze**. Immutable source material.
-  - flat `*.md` files; `source_type:` differentiates articles, papers, talks, books, chapters, and conversations
-- `wiki/sources/` — **Silver**. One reading-notes card per external source.
-- `wiki/<topic>.md` — **Gold**. Flat. One file per distinct idea, technique, model, or tradeoff. No subdirectories.
-- `index.md` — navigation catalog (agent-maintained).
-- `log.md` — chronological operations log.
-- `wiki/glossary.md` — aliases / alternate names pointing at canonical topic slugs.
-- `type/` — Tolaria type definitions for sidebar grouping.
-- `views/` — Tolaria saved views for pending raw, drafts, stale pages, and recent clips.
-- `CLAUDE.md` — the agent's operating manual (the load-bearing file).
+```
+wiki-kit/
+├── CLAUDE.md          operating manual
+├── README.md          this file
+├── index.md           navigation catalog (agent-maintained)
+├── log.md             append-only operations log
+├── bases/             Obsidian Bases — 6 saved queries over the vault
+│   ├── pending-ingest.base
+│   ├── drafts.base
+│   ├── mono-sourced.base
+│   ├── stale-topics.base
+│   ├── orphans.base
+│   └── conversations.base
+├── raw/               Bronze — immutable source material
+│   ├── articles/
+│   ├── papers/
+│   ├── books/
+│   ├── talks/
+│   └── conversations/
+├── utilities/         clipper templates, helper scripts, cheatsheet, teaching voice
+└── wiki/              agent-owned knowledge
+    ├── sources/       Silver — one reading-notes card per source
+    ├── digests/       daily-digest output
+    └── <topic>.md     Gold — flat, one file per distinct idea
+```
 
-Topic pages are categorised by **types and tags**, not directories. `type: Concept | Practice | Pattern | Tradeoff | Tool | Language | System | Question` drives Tolaria's sidebar grouping. `tags: [concept]`, `tags: [practice]`, etc. stay lowercase for Obsidian graph/search compatibility. `index.md` groups by tag for scanning.
+`raw/` is subdivided by `source_type`. The frontmatter field and subdir always agree; skills walk `raw/` recursively.
+
+Topic pages are tagged, not nested: `tags: [concept | language | framework | system | tool | pattern | practice | tradeoff | question]`. `index.md` groups by tag. Topic pages also carry an optional `domain:` list for cluster-based navigation via MOCs (Maps of Content).
 
 ## Setup
 
-This is a working wiki, not an install script.
-
 1. **Clone / copy** this repo into the location you want your wiki to live.
-2. **Open it in Tolaria, Obsidian, Cursor, or Claude Code** — it's just markdown either way. The pre-configured `type/` and `views/` folders support Tolaria; `.obsidian/` gives graph-view color-coding by tag and sensible hotkeys if you use Obsidian.
-3. **Set up [Obsidian Web Clipper](https://obsidian.md/clipper)** if you plan to clip sources from the web. Templates are in `utilities/`; see [`utilities/README.md`](./utilities/README.md).
-4. **Install `yt-dlp`** if you plan to ingest YouTube talks: `brew install yt-dlp` (or equivalent).
-5. **Start ingesting.** Drop a source into `raw/` and tell the agent "ingest this."
+2. **Open it in Obsidian and Claude Code** — it's just markdown either way.
+3. **Install the Obsidian skills plugin for Claude Code.** This gives the agent first-class access to the Obsidian CLI (search, backlinks, base queries, vault operations):
+   ```
+   /plugin marketplace add kepano/obsidian-skills
+   /plugin install obsidian@obsidian-skills
+   /reload-plugins
+   ```
+4. **Set up [Obsidian Web Clipper](https://obsidian.md/clipper)** if you plan to clip sources from the web. Templates are in `utilities/`; see [`utilities/README.md`](./utilities/README.md).
+5. **Install `yt-dlp`** if you plan to ingest YouTube talks: `brew install yt-dlp` (or equivalent).
+6. **Start ingesting.** Drop a source into `raw/<source_type>/` and tell the agent "ingest this."
 
-That's it. No placeholders to fill, no script to run.
+## Skills
+
+Ten skills cover the full workflow. Invoke via Claude Code or any Claude agent that has read `CLAUDE.md`.
+
+| Skill | What it does |
+|---|---|
+| `wiki-ingest` | Ingest a source from `raw/` — confirms scope, uses CLI to check for similar existing pages, extends/creates topic pages and source card. |
+| `reading-companion` | Read a book chapter-by-chapter; seeds a home card, tracks progress, runs discussion. |
+| `save-conversation` | Save an LLM conversation to `raw/conversations/` with structured metadata (key_insight, codebase_context, related_topics). |
+| `load-conversation` | Search and retrieve past conversations across sessions. Surfaces dangling followups. |
+| `daily-digest` | Batch-ingest all pending `raw/` sources, then write a curated digest note. |
+| `lint` | Audit for orphan pages, broken wikilinks, stale claims, missing frontmatter, index drift. |
+| `topic-overview` | Full retrieval routine for "what do we know about X?" — reads page, MOC, sources, backlinks, synthesises. |
+| `whats-stale` | Surface topic pages past freshness thresholds as an actionable refresh queue. |
+| `inbound-links` | Find every wikilink pointing at a topic page, including alias-mediated, block-ref, and embed forms. |
+| `seed-mocs` | Generate/refresh Maps of Content from `domain:` frontmatter across all topic pages. |
 
 ## Usage
 
-- **Add sources.** Drop them into flat `raw/`. The clipper templates handle the web-to-file step for articles / arXiv / YouTube; `utilities/prepare.sh` backfills PDFs and transcripts.
-- **Ingest.** Tell the agent to ingest a specific file, a folder, or "all pending". The agent reads, decides what to extend vs create, writes the topic pages and source card, updates `index.md`, appends to `log.md`.
-- **Query.** Ask questions against the wiki. The agent reads `index.md` first, then drills into the relevant topic pages.
-- **Lint.** Periodically ask the agent to lint — surfaces orphans, contradictions, stale claims, candidates for promotion.
+**Standard workflow:**
+
+1. A source lands in `raw/<source_type>/` (manually or via Obsidian Web Clipper).
+2. Tell the agent to ingest it. `wiki-ingest` confirms scope, searches for existing similar pages via the Obsidian CLI, decides what to extend vs create, writes topic pages and the source card.
+3. Ask questions against the wiki. The agent reads `index.md`, drills into topic pages, chases wikilinks.
+4. As domain clusters form, run `seed-mocs` to generate Maps of Content for navigation.
+5. Periodically run `lint` and `whats-stale` to keep the vault clean.
+
+**Conversation lifecycle:** `save-conversation` captures a session to `raw/conversations/`. `load-conversation` retrieves it later — surfacing session detail, key insights, and dangling followups across sessions. `wiki-ingest` can then promote it into topic pages if the ideas are worth keeping.
 
 Example prompts:
 
 - "Ingest the article I just dropped in `raw/`."
-- "Ingest the paper I dropped in `raw/`."
-- "Let's start [book]." *(triggers the `reading-companion` skill for multi-chapter reads)*
+- "Let's start *[book]*."
 - "Compare X and Y based on what we have so far."
 - "Lint the wiki."
+- "What's stale?"
+- "Deep dive on `kafka`."
+- "What did we discuss about the auth middleware?"
 
-## What comes pre-loaded
+## Obsidian setup
 
-- **`CLAUDE.md`** — the operating manual. General-purpose; works out of the box. Two optional sections near the top (*Owner baseline*, *Scope*) are where you'd sharpen the agent's defaults if you want to.
-- **`.claude/skills/wiki-ingest/`** — the ingest skill. Heavy on teaching voice.
-- **`.claude/skills/reading-companion/`** — multi-chapter book / lecture-series companion. Seeds a book home card, supports read-along discussion, hands off to `wiki-ingest` per chapter.
-- **`.claude/skills/daily-digest/`** — batched-ingest + curated highlights. Runs everything pending in `raw/` through `prepare.sh` + `wiki-ingest`, then writes a short editorial digest to `wiki/digests/<date>.md`. Designed to run on a schedule.
-- **`utilities/`** — Obsidian Web Clipper templates for articles, arXiv papers, and YouTube talks, plus `prepare.sh` (post-clip backfill) and `youtube_transcript.sh` (caption fetcher).
-- **`type/`** — Tolaria type definitions for topic pages, sources, raw clips, and digests.
-- **`views/`** — Tolaria saved views for pending raw, drafts, stale topics, and recent clips.
-- **`.obsidian/`** — pre-configured vault: graph-view colors per tag, hotkeys, sensible defaults.
-- **`examples/`** — reference specialisations showing how `CLAUDE.md` can be narrowed for specific domains. Optional reading; the wiki works as-is without them.
+Open this folder as an Obsidian vault. Key features:
+
+- **Bases** (core, v1.9+) — 6 `.base` files in `bases/` are pre-built saved queries. Enable the Bases plugin and they work out of the box.
+- **Obsidian Web Clipper** — templates in `utilities/` clip sources directly into `raw/<source_type>/`.
+- **Obsidian CLI** — first-class retrieval surface for the agent: search, backlinks, tag queries, base queries. See `utilities/obsidian-search-cheatsheet.md`.
+
+Property types are declared in `.obsidian/types.json` for reliable Bases queries and graph filtering. `aliases:` on topic pages lets Obsidian resolve wikilink variants (`k8s` -> `kubernetes`). No separate glossary file.
 
 ## Specialising the wiki (optional)
 
-If you want to narrow the wiki to a specific domain — AI/ML, data engineering, cooking, personal finance, whatever — the main things to edit in `CLAUDE.md`:
+Narrow it to a specific domain — AI/ML, data engineering, cooking, personal finance, whatever — by editing `CLAUDE.md`:
 
-- **Purpose** — rewrite the opening paragraph to describe your specific domain.
-- **Owner baseline** — replace the default with a sharper "assume X, don't explain Y, do explain Z" paragraph.
-- **Scope** — if you want hard boundaries, spell them out. If you're running multiple bounded wikis side-by-side, describe the sibling wikis here so the agent can route borderline sources.
-- **Tag vocabulary** — override the default tags if your domain wants different categories. Update `index.md` groups and `.obsidian/graph.json` color groups to match.
-- **Source types** — if your domain has canonical inputs beyond `article | paper | talk | book | chapter | conversation`, add a new `source_type`, a clipper template in `utilities/`, and the matching schema in `CLAUDE.md`. Keep `raw/` flat unless you have a very good reason to fork the kit.
+- **Purpose** — rewrite for your domain.
+- **Owner baseline** — sharper "assume X, don't explain Y, do explain Z."
+- **Scope** — hard boundaries if running multiple bounded wikis side-by-side.
+- **Domain vocabulary** — define as clusters emerge. `seed-mocs` proposes MOC candidates when 3+ pages share a domain.
+- **Tag vocabulary** — override default tags if your domain needs different categories.
 
-See [`examples/`](./examples/) for concrete specialisations across a few sample domains.
+See [`examples/`](./examples/) for concrete specialisations.
 
 ## Scale expectations
 
 Comfortable range for the index-as-search strategy (no embeddings needed):
 
-- ~40–150 source cards
-- ~100–250 topic pages
+- ~40-150 source cards
+- ~100-250 topic pages
 
-Total: roughly 150–400 pages. Beyond that you'll want to think about splitting into multiple bounded wikis, or introducing light retrieval — but most personal wikis never get there.
+Total: roughly 150-400 pages. Beyond that, split into multiple bounded wikis or introduce light retrieval.
 
 ## Credits
 
 - [Andrej Karpathy's LLM Wiki gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) — the source pattern.
-- [Obsidian Web Clipper](https://obsidian.md/clipper) — the capture side of the pipeline.
+- [Obsidian Web Clipper](https://obsidian.md/clipper) — the capture side.
+- [Obsidian Skills for Claude Code](https://github.com/kepano/obsidian-skills) — CLI, Bases, and markdown skills.
