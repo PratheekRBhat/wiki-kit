@@ -7,7 +7,7 @@ description: Given a topic slug, run the full retrieval routine to answer "what 
 
 Retrieves and synthesizes everything the wiki knows about a given topic. The output is not a dump of file contents — it's a curated answer in the wiki's teaching voice, drawing on topic, MOC context, source cards, and backlinks together.
 
-**Read budget:** `wiki/<slug>.md` (required), up to 5 `wiki/<domain>-moc.md` files, up to all source cards in `sources:`, up to 3 referencing pages from backlinks. Do not read `index.md`, `log.md`, `CLAUDE.md`, sibling wiki files, or `raw/` unless the topic page explicitly references them.
+**Read budget:** `wiki/<slug>.md` (required), up to 5 `mocs/<domain>-moc.md` files, up to all source cards in `sources:`, up to 3 referencing pages from backlinks. Do not read `index.md`, `log.md`, `CLAUDE.md`, sibling wiki files, or `raw/` unless the topic page explicitly references them.
 
 ---
 
@@ -38,7 +38,7 @@ Note any `status:` value. A `status: stale` page is useful as a starting point b
 
 ### Step 3 — Read MOC cluster context
 
-For each value in `domain:`, check if `wiki/<domain>-moc.md` exists. If yes, read it.
+For each value in `domain:`, check if `mocs/<domain>-moc.md` exists. If yes, read it.
 
 The MOC gives cluster context: what other topics live in the same domain, how they relate, and where this topic sits in the overall cluster. Use this for orientation in the synthesis — it tells you what the topic is adjacent to, not what it says.
 

@@ -48,6 +48,7 @@ wiki/
 ├── index.md          ← navigation catalog (agent maintains)
 ├── log.md            ← append-only operations log
 ├── bases/            ← Obsidian Bases (.base files) — saved queries over the vault
+├── mocs/             ← Maps of Content — one cluster navigation map per domain
 ├── raw/              ← BRONZE — immutable source material
 │   ├── articles/     ← source_type: article
 │   ├── papers/       ← source_type: paper
@@ -166,9 +167,9 @@ Body shape depends on topic type, but the teaching arc is consistent (see `utili
 
 For pages tagged `[tradeoff]`: **The tension** → **Option A** → **Option B** → **Decision heuristics** → **Real-world examples**.
 
-### MOC page — `wiki/<domain>-moc.md`
+### MOC page — `mocs/<domain>-moc.md`
 
-One MOC per domain cluster (`streaming-moc.md`, `observability-moc.md`, etc.). The middle navigation layer between `index.md` (vault-wide) and topic pages (single idea). Managed by the `seed-mocs` skill, which documents the full schema and population rules. MOCs get their own `domain:` field, and pages with multi-valued domain appear in each relevant MOC.
+One MOC per domain cluster (`streaming-moc.md`, `observability-moc.md`, etc.). Lives at the vault root in `mocs/` alongside other navigation surfaces (`index.md`, `bases/`), not inside `wiki/` (which is pure knowledge). Managed by the `seed-mocs` skill, which documents the full schema and population rules. MOCs get their own `domain:` field, and pages with multi-valued domain appear in each relevant MOC.
 
 ### Frontmatter conventions
 

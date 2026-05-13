@@ -1,11 +1,11 @@
 ---
 name: seed-mocs
-description: Generate Maps of Content (MOCs) from domain frontmatter on topic pages. Scans the vault for clusters with N+ pages, proposes MOC candidates, generates wiki/<domain>-moc.md files with frontmatter and link sections grouped by tag. Use when the owner says "seed mocs", "audit clusters", "what mocs should we have?", "build mocs", or any variant requesting MOC generation/audit. Content-agnostic — works on any wiki using the same frontmatter conventions.
+description: Generate Maps of Content (MOCs) from domain frontmatter on topic pages. Scans the vault for clusters with N+ pages, proposes MOC candidates, generates mocs/<domain>-moc.md files with frontmatter and link sections grouped by tag. Use when the owner says "seed mocs", "audit clusters", "what mocs should we have?", "build mocs", or any variant requesting MOC generation/audit. Content-agnostic — works on any wiki using the same frontmatter conventions.
 ---
 
 # seed-mocs
 
-Scans topic pages for `domain:` values, tallies cluster sizes, proposes MOC candidates, and generates `wiki/<domain>-moc.md` files per the convention in `CLAUDE.md`. Content-agnostic by design — the skill knows the shape, not the subject matter.
+Scans topic pages for `domain:` values, tallies cluster sizes, proposes MOC candidates, and generates `mocs/<domain>-moc.md` files per the convention in `CLAUDE.md`. Content-agnostic by design — the skill knows the shape, not the subject matter.
 
 **Prerequisite every run:** re-read `CLAUDE.md` (the MOC page-shape spec and the `### Linking` subsection) and skim `index.md` to see what MOCs already exist.
 
@@ -50,7 +50,7 @@ Default threshold: domains with primary-count >= 3.
 
 Configurable via argument: `--threshold N` (e.g., `seed-mocs --threshold 5` raises the bar).
 
-Surface each candidate with: domain name, primary count, total count (any-position), and whether a MOC already exists at `wiki/<domain>-moc.md`.
+Surface each candidate with: domain name, primary count, total count (any-position), and whether a MOC already exists at `mocs/<domain>-moc.md`.
 
 ### 4. Prompt per candidate
 
@@ -62,9 +62,9 @@ For each candidate domain, ask the owner: **seed / skip / defer**.
 
 Do not bulk-seed without per-domain confirmation. Do not guess.
 
-### 5. Generate `wiki/<domain>-moc.md`
+### 5. Generate `mocs/<domain>-moc.md`
 
-For each seeded domain, write a file at `wiki/<domain>-moc.md` with:
+For each seeded domain, write a file at `mocs/<domain>-moc.md` with:
 
 **Frontmatter:**
 
@@ -125,7 +125,7 @@ One-line description per MOC. Place the group before the existing "Languages" / 
 ```
 ## [YYYY-MM-DD] meta | seed-mocs — <list of domains seeded>
 
-- Created: wiki/<domain>-moc.md (x N)
+- Created: mocs/<domain>-moc.md (x N)
 - Updated: index.md (Maps of Content group added/extended)
 - Notes: Seeded N MOCs from domain clusters with primary-count >= <threshold>. Hook paragraphs are TODO placeholders — fill in manually.
 ```
@@ -134,7 +134,7 @@ One-line description per MOC. Place the group before the existing "Languages" / 
 
 ## Re-running behavior
 
-If `wiki/<domain>-moc.md` already exists when the owner seeds a domain:
+If `mocs/<domain>-moc.md` already exists when the owner seeds a domain:
 
 **Prompt:** `<domain>-moc.md` exists — regenerate / merge new entries / skip?
 

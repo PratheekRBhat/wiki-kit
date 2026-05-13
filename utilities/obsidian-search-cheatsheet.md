@@ -70,7 +70,7 @@ MOCs are the middle navigation layer between `index.md` (vault-wide) and topic p
 tag:#system path:wiki content:"<domain-name>"
 ```
 
-Or open the relevant `wiki/<domain>-moc.md` and scan the Systems section — faster when you want context alongside the list.
+Or open the relevant `mocs/<domain>-moc.md` and scan the Systems section — faster when you want context alongside the list.
 
 ### "Pages updated in the last 7 days"
 
